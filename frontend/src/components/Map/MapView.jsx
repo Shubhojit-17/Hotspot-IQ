@@ -413,9 +413,9 @@ export default function MapView({
                   </p>
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${spot.rating === 'Excellent' ? 'bg-emerald-100 text-emerald-700' :
-                        spot.rating === 'Good' ? 'bg-cyan-100 text-cyan-700' :
-                          spot.rating === 'Moderate' ? 'bg-amber-100 text-amber-700' :
-                            'bg-orange-100 text-orange-700'
+                      spot.rating === 'Good' ? 'bg-cyan-100 text-cyan-700' :
+                        spot.rating === 'Moderate' ? 'bg-amber-100 text-amber-700' :
+                          'bg-orange-100 text-orange-700'
                       }`}>
                       {spot.rating}
                     </span>
@@ -483,17 +483,17 @@ export default function MapView({
                           <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${relevance >= 0.8 ? 'bg-emerald-500' :
-                                  relevance >= 0.6 ? 'bg-cyan-500' :
-                                    relevance >= 0.4 ? 'bg-amber-500' :
-                                      'bg-slate-400'
+                                relevance >= 0.6 ? 'bg-cyan-500' :
+                                  relevance >= 0.4 ? 'bg-amber-500' :
+                                    'bg-slate-400'
                                 }`}
                               style={{ width: `${relevance * 100}%` }}
                             />
                           </div>
                           <span className={`text-xs font-medium ${relevance >= 0.8 ? 'text-emerald-600' :
-                              relevance >= 0.6 ? 'text-cyan-600' :
-                                relevance >= 0.4 ? 'text-amber-600' :
-                                  'text-slate-500'
+                            relevance >= 0.6 ? 'text-cyan-600' :
+                              relevance >= 0.4 ? 'text-amber-600' :
+                                'text-slate-500'
                             }`}>
                             {Math.round(relevance * 100)}%
                           </span>
@@ -516,7 +516,7 @@ export default function MapView({
       {/* Unified Bottom-Right Controls - Single Column Stack */}
       {selectedLocation && !isLoading && (
         <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2 max-w-[220px]">
-          
+
           {/* Row 1: Quick Stats Panel */}
           {analysis && onOpenPanel && (
             <button
@@ -584,8 +584,8 @@ export default function MapView({
               <button
                 onClick={() => setHeatmapEnabled(!heatmapEnabled)}
                 className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${heatmapEnabled
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
-                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                   }`}
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -597,8 +597,8 @@ export default function MapView({
                 <button
                   onClick={() => setShowSpots(!showSpots)}
                   className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showSpots
-                      ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
-                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                     }`}
                 >
                   <img src="/icons/star.svg" alt="" className="w-3 h-3" style={{ filter: showSpots ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
@@ -609,8 +609,8 @@ export default function MapView({
                 <button
                   onClick={() => setContextualVisibility(!contextualVisibility)}
                   className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${contextualVisibility
-                      ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25'
-                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                    ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25'
+                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                     }`}
                   title="Adjusts landmark visibility based on relevance to your business type"
                 >

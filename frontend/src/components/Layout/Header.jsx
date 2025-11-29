@@ -11,9 +11,9 @@ export default function Header() {
         <div className="flex items-center gap-2">
           {/* Logo Image */}
           <div className="w-8 h-8 flex items-center justify-center">
-            <img 
-              src="/hotspot-logo.png" 
-              alt="Hotspot IQ" 
+            <img
+              src="/hotspot-logo.png"
+              alt="Hotspot IQ"
               className="w-8 h-8 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
@@ -28,7 +28,7 @@ export default function Header() {
               </svg>
             </div>
           </div>
-          
+
           {/* Brand Text */}
           <div className="leading-tight">
             <h1 className="text-base font-bold tracking-tight">
@@ -68,9 +68,9 @@ export default function Header() {
           </div>
 
           {/* GitHub Link */}
-          <a 
-            href="https://github.com/Shubhojit-17/Hotspot-IQ" 
-            target="_blank" 
+          <a
+            href="https://github.com/Shubhojit-17/Hotspot-IQ"
+            target="_blank"
             rel="noopener noreferrer"
             className="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all duration-200 group"
           >
