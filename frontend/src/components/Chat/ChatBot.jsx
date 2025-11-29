@@ -22,13 +22,10 @@ export const ChatBot = ({ selectedLocation, businessType, analysis, isOpen, onCl
         }
     }, [messages, isOpen]);
 
-    const handleSend = async (e) => {
-        e.preventDefault();
-        if (!input.trim()) return;
+    const sendMessage = async (text) => {
+        if (!text.trim()) return;
 
-        const userMessage = input.trim();
-        setInput('');
-        setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        setMessages(prev => [...prev, { role: 'user', content: text }]);
         setIsLoading(true);
 
         try {
@@ -39,7 +36,7 @@ export const ChatBot = ({ selectedLocation, businessType, analysis, isOpen, onCl
                 analysis_data: analysis
             };
 
-            const response = await chat(userMessage, context);
+            const response = await chat(text, context);
 
             setMessages(prev => [...prev, {
                 role: 'assistant',
@@ -56,6 +53,30 @@ export const ChatBot = ({ selectedLocation, businessType, analysis, isOpen, onCl
             setIsLoading(false);
         }
     };
+
+    const handleSend = async (e) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+        const text = input.trim();
+        setInput('');
+        await sendMessage(text);
+    };
+
+    const handleSpotClick = (rank) => {
+        const text = `Tell me about Spot #${rank}. Why was it selected?`;
+        sendMessage(text);
+    };
+
+    const handleClear = () => {
+        setMessages([
+            {
+                role: 'assistant',
+                content: 'Hi! I\'m Hotspot IQ. I can help you analyze locations and answer questions about your business expansion. How can I help you today?'
+            }
+        ]);
+    };
+
+    const recommendedSpots = analysis?.recommended_spots || [];
 
     if (!isOpen) return null;
 
@@ -75,15 +96,45 @@ export const ChatBot = ({ selectedLocation, businessType, analysis, isOpen, onCl
                         <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                         <h3 className="font-semibold text-white">Hotspot IQ Assistant</h3>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="text-slate-400 hover:text-white transition-colors"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleClear}
+                            className="text-slate-400 hover:text-white transition-colors p-1"
+                            title="Clear Chat"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="text-slate-400 hover:text-white transition-colors p-1"
+                            title="Close"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+
+                {/* Recommended Spots Chips */}
+                {recommendedSpots.length > 0 && (
+                    <div className="px-4 py-3 border-b border-surface-border bg-surface-elevated/30 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                        <div className="flex gap-2">
+                            <span className="text-xs text-slate-400 flex items-center mr-1">Quick Ask:</span>
+                            {recommendedSpots.slice(0, 5).map((spot, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleSpotClick(idx + 1)}
+                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+                                >
+                                    Spot #{idx + 1} ({spot.rating})
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
