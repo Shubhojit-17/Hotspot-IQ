@@ -26,9 +26,9 @@ export default function AnalysisPanel({
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-canvas-overlay border-l border-surface-border z-50 overflow-hidden flex flex-col animate-slide-in-right">
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-slate-950 border-l border-white/10 z-50 overflow-hidden flex flex-col animate-slide-in-right">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-surface-border bg-surface-elevated">
+        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-900">
           <div>
             <h2 className="text-lg font-semibold text-slate-100">
               Location Analysis

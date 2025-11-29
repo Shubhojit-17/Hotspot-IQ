@@ -289,8 +289,13 @@ export default function MapView({
   showHeatmap = true,
   showLandmarks = true,
   showCompetitors = true,
+  setShowLandmarks,
+  setShowCompetitors,
   businessType = null, // For contextual visibility
   radius = null, // Radius in meters
+  analysis = null, // For stats panel
+  onOpenPanel, // Callback to open analysis panel
+  isLoading = false, // Loading state
 }) {
   const mapRef = useRef(null);
   const [heatmapEnabled, setHeatmapEnabled] = useState(true);
@@ -501,94 +506,157 @@ export default function MapView({
           })}
       </MapContainer>
 
-      {/* Heatmap Toggle & Legend */}
-      {selectedLocation && competitorList.length > 0 && (
-        <div className="absolute bottom-4 right-4 z-[1000]">
-          {/* Toggle Buttons */}
-          <div className="flex flex-wrap gap-2 mb-2 justify-end">
+      {/* Unified Bottom-Right Controls - Single Column Stack */}
+      {selectedLocation && !isLoading && (
+        <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2 max-w-[220px]">
+          
+          {/* Row 1: Quick Stats Panel */}
+          {analysis && onOpenPanel && (
             <button
-              onClick={() => setHeatmapEnabled(!heatmapEnabled)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${heatmapEnabled
-                  ? 'bg-primary-glow text-canvas-deep'
-                  : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
-                }`}
+              onClick={onOpenPanel}
+              className="w-full backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-2.5 hover:bg-slate-800/90 transition-all cursor-pointer group shadow-lg"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              {heatmapEnabled ? 'Heatmap ON' : 'Heatmap OFF'}
-            </button>
-            {spotList.length > 0 && (
-              <button
-                onClick={() => setShowSpots(!showSpots)}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${showSpots
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
-                  }`}
-              >
-                <img src="/icons/star.svg" alt="" className="w-4 h-4" style={{ filter: showSpots ? 'brightness(0) invert(1)' : 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
-                {showSpots ? `${spotList.length} Spots` : 'Show Spots'}
-              </button>
-            )}
-            {/* Contextual Visibility Toggle */}
-            {businessType && landmarkList.length > 0 && (
-              <button
-                onClick={() => setContextualVisibility(!contextualVisibility)}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${contextualVisibility
-                    ? 'bg-violet-500 text-white'
-                    : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
-                  }`}
-                title="Adjusts landmark visibility based on relevance to your business type"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                {contextualVisibility ? 'Smart View' : 'Equal View'}
-              </button>
-            )}
-          </div>
-
-          {/* Legend */}
-          {heatmapEnabled && (
-            <div className="bg-canvas-base/90 backdrop-blur-sm border border-surface-border rounded-lg p-3 shadow-lg">
-              <p className="text-xs font-medium text-slate-300 mb-2">Competition Density</p>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 rounded" style={{ background: 'rgb(34, 197, 94)' }} />
-                <div className="w-4 h-4 rounded" style={{ background: 'rgb(134, 197, 94)' }} />
-                <div className="w-4 h-4 rounded" style={{ background: 'rgb(255, 200, 0)' }} />
-                <div className="w-4 h-4 rounded" style={{ background: 'rgb(255, 150, 0)' }} />
-                <div className="w-4 h-4 rounded" style={{ background: 'rgb(255, 80, 50)' }} />
+              <div className="flex items-center gap-2">
+                <div className="text-center">
+                  <p className="text-xl font-bold text-emerald-400">
+                    {analysis.recommended_spots?.length || 0}
+                  </p>
+                  <p className="text-[9px] text-slate-500">Spots</p>
+                </div>
+                <div className="w-px h-7 bg-white/10" />
+                <div className="text-left text-[10px]">
+                  <p className="text-slate-300">
+                    <span className="text-rose-400 font-medium">{analysis.competitors?.count || 0}</span> competitors
+                  </p>
+                  <p className="text-slate-300">
+                    <span className="text-cyan-400 font-medium">{analysis.landmarks?.total || 0}</span> landmarks
+                  </p>
+                </div>
+                <div className="text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all ml-auto">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
-              <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Opportunity</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500"></span>High Competition</span>
+            </button>
+          )}
+
+          {/* Row 2: Landmarks & Competitors Toggle */}
+          {setShowLandmarks && setShowCompetitors && (
+            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-1.5 flex gap-1 shadow-lg">
+              <button
+                onClick={() => setShowLandmarks(!showLandmarks)}
+                className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showLandmarks
+                  ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/25'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                  }`}
+              >
+                <img src="/icons/building.svg" alt="" className="w-3 h-3"
+                  style={{ filter: showLandmarks ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
+                />
+                <span>{showLandmarks ? 'Landmarks' : 'Landmarks'}</span>
+              </button>
+              <button
+                onClick={() => setShowCompetitors(!showCompetitors)}
+                className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showCompetitors
+                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                  }`}
+              >
+                <img src="/icons/store.svg" alt="" className="w-3 h-3"
+                  style={{ filter: showCompetitors ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
+                />
+                <span>{showCompetitors ? 'Competitors' : 'Competitors'}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Row 3: Heatmap, Spots, Smart View Toggle */}
+          {competitorList.length > 0 && (
+            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-1.5 flex flex-wrap gap-1 shadow-lg">
+              <button
+                onClick={() => setHeatmapEnabled(!heatmapEnabled)}
+                className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${heatmapEnabled
+                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
+                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                  }`}
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <span>Heatmap</span>
+              </button>
+              {spotList.length > 0 && (
+                <button
+                  onClick={() => setShowSpots(!showSpots)}
+                  className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showSpots
+                      ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                    }`}
+                >
+                  <img src="/icons/star.svg" alt="" className="w-3 h-3" style={{ filter: showSpots ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
+                  <span>{spotList.length} Spots</span>
+                </button>
+              )}
+              {businessType && landmarkList.length > 0 && (
+                <button
+                  onClick={() => setContextualVisibility(!contextualVisibility)}
+                  className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${contextualVisibility
+                      ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25'
+                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                    }`}
+                  title="Adjusts landmark visibility based on relevance to your business type"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span>Smart</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Row 4: Heatmap Legend */}
+          {heatmapEnabled && competitorList.length > 0 && (
+            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-2.5 shadow-lg">
+              <p className="text-[9px] font-medium text-slate-300 mb-1.5">Competition Density</p>
+              <div className="flex items-center gap-0.5">
+                <div className="w-3 h-3 rounded" style={{ background: 'rgb(34, 197, 94)' }} />
+                <div className="w-3 h-3 rounded" style={{ background: 'rgb(134, 197, 94)' }} />
+                <div className="w-3 h-3 rounded" style={{ background: 'rgb(255, 200, 0)' }} />
+                <div className="w-3 h-3 rounded" style={{ background: 'rgb(255, 150, 0)' }} />
+                <div className="w-3 h-3 rounded" style={{ background: 'rgb(255, 80, 50)' }} />
+              </div>
+              <div className="flex justify-between text-[8px] text-slate-500 mt-1">
+                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Low</span>
+                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>High</span>
               </div>
             </div>
           )}
 
-          {/* Contextual Visibility Legend */}
+          {/* Row 5: Smart View Legend */}
           {contextualVisibility && businessType && landmarkList.length > 0 && (
-            <div className="bg-canvas-base/90 backdrop-blur-sm border border-surface-border rounded-lg p-3 shadow-lg mt-2">
-              <p className="text-xs font-medium text-slate-300 mb-2 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-2.5 shadow-lg">
+              <p className="text-[9px] font-medium text-slate-300 mb-1.5 flex items-center gap-1">
+                <svg className="w-3 h-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                Smart View for {businessType}
+                Smart: {businessType}
               </p>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-[10px]">
-                  <div className="w-5 h-5 rounded-full bg-cyan-500 opacity-100 flex items-center justify-center">
-                    <span className="text-white text-[8px]">★</span>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 text-[8px]">
+                  <div className="w-4 h-4 rounded-full bg-cyan-500 opacity-100 flex items-center justify-center">
+                    <span className="text-white text-[7px]">★</span>
                   </div>
-                  <span className="text-slate-400">High relevance - larger, prominent</span>
+                  <span className="text-slate-400">High relevance</span>
                 </div>
-                <div className="flex items-center gap-2 text-[10px]">
-                  <div className="w-4 h-4 rounded-full bg-cyan-500 opacity-50 flex items-center justify-center">
-                    <span className="text-white text-[7px]">•</span>
+                <div className="flex items-center gap-1.5 text-[8px]">
+                  <div className="w-3 h-3 rounded-full bg-cyan-500 opacity-50 flex items-center justify-center">
+                    <span className="text-white text-[6px]">•</span>
                   </div>
-                  <span className="text-slate-400">Low relevance - smaller, faded</span>
+                  <span className="text-slate-400">Low relevance</span>
                 </div>
               </div>
             </div>

@@ -1,32 +1,84 @@
 /**
- * Header Component
- * App header with branding
+ * Header Component - Floating Island Design
+ * Glass-morphic Command Center aesthetic
  */
 
 export default function Header() {
   return (
-    <header className="bg-surface-elevated/80 backdrop-blur-sm border-b border-surface-border px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        {/* Logo */}
-        <div className="w-10 h-10 flex items-center justify-center">
-          <img src="/logo.svg" alt="Hotspot IQ" className="w-10 h-10" />
+    <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-6xl z-50">
+      <div className="backdrop-blur-xl bg-slate-900/80 border border-white/10 rounded-full px-4 py-2 flex items-center justify-between shadow-xl shadow-black/20">
+        {/* Left: Logo & Brand */}
+        <div className="flex items-center gap-2">
+          {/* Logo Image */}
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img 
+              src="/hotspot-logo.png" 
+              alt="Hotspot IQ" 
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+            {/* Fallback gradient icon */}
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 items-center justify-center hidden">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+          </div>
+          
+          {/* Brand Text */}
+          <div className="leading-tight">
+            <h1 className="text-base font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+                Hotspot
+              </span>
+              <span className="text-white">IQ</span>
+            </h1>
+            <p className="text-[9px] text-slate-500 tracking-wider uppercase -mt-0.5">
+              Location Intelligence
+            </p>
+          </div>
         </div>
-        
-        {/* Brand */}
-        <div>
-          <h1 className="text-lg font-bold text-slate-100 tracking-tight">
-            Hotspot<span className="text-primary-glow">IQ</span>
-          </h1>
-          <p className="text-xs text-slate-500">
-            Location Intelligence Platform
-          </p>
+
+        {/* Right: Navigation & Links */}
+        <div className="flex items-center gap-3">
+          {/* Nav Links */}
+          <nav className="hidden md:flex items-center">
+            <a href="#" className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all duration-200">
+              Dashboard
+            </a>
+            <a href="#" className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all duration-200">
+              Analytics
+            </a>
+            <a href="#" className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all duration-200">
+              API Docs
+            </a>
+          </nav>
+
+          {/* Divider */}
+          <div className="hidden md:block w-px h-5 bg-white/10" />
+
+          {/* Powered By */}
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px]">
+            <span className="text-slate-500">Powered by</span>
+            <span className="text-emerald-400 font-semibold">LatLong.ai</span>
+          </div>
+
+          {/* GitHub Link */}
+          <a 
+            href="https://github.com/Shubhojit-17/Hotspot-IQ" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all duration-200 group"
+          >
+            <svg className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
+              <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z" />
+            </svg>
+          </a>
         </div>
-      </div>
-      
-      {/* Powered by */}
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <span>Powered by</span>
-        <span className="text-primary-glow font-medium">LatLong.ai</span>
       </div>
     </header>
   );
