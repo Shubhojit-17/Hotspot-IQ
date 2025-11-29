@@ -148,7 +148,7 @@ const LANDMARK_ICON_MAP = {
 // Custom marker icons with SVG - supports dynamic size/opacity for contextual visibility
 const createCustomIcon = (color, iconPath, size = 32, opacity = 1, zIndex = 500) => {
   const iconSize = size;
-  const innerIconSize = Math.round(size * 0.56); // Icon image size proportional to marker
+  const innerIconSize = Math.round(size * 0.5); // Icon image size proportional to marker
 
   return L.divIcon({
     className: 'custom-marker',
@@ -166,8 +166,15 @@ const createCustomIcon = (color, iconPath, size = 32, opacity = 1, zIndex = 500)
         opacity: ${opacity};
         transition: opacity 0.3s ease, transform 0.3s ease;
         z-index: ${zIndex};
+        position: relative;
       ">
-        <img src="${iconPath}" alt="" style="width: ${innerIconSize}px; height: ${innerIconSize}px; filter: brightness(0) invert(1);" />
+        <div style="
+          width: ${innerIconSize}px;
+          height: ${innerIconSize}px;
+          background-color: white;
+          -webkit-mask: url('${iconPath}') center/contain no-repeat;
+          mask: url('${iconPath}') center/contain no-repeat;
+        "></div>
       </div>
     `,
     iconSize: [iconSize, iconSize],
