@@ -7,7 +7,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api',
   timeout: 120000, // 2 minutes to handle longer analysis calls
   headers: {
     'Content-Type': 'application/json',
@@ -44,11 +44,11 @@ api.interceptors.response.use(
  */
 export const searchLocations = async (query) => {
   if (!query || query.length < 2) return [];
-  
+
   try {
     const response = await api.get('/autocomplete', { params: { query, limit: 10 } });
     const suggestions = response.data.suggestions || [];
-    
+
     // LatLong autocomplete returns { name, geoid } without coordinates
     // We need to geocode to get coordinates when user selects a location
     return suggestions.map(s => ({
@@ -102,11 +102,11 @@ export const analyzeLocation = async (lat, lng, businessType, filters = [], isMa
     return response.data;
   } catch (error) {
     console.error('Analysis error:', error);
-    
+
     // Extract validation error from backend response
     if (error.response?.data) {
       const data = error.response.data;
-      
+
       // Check if this is a validation failure
       if (data.validation_failed || data.error_type) {
         const validationError = new Error(data.error || data.message || 'Location validation failed');
@@ -114,13 +114,13 @@ export const analyzeLocation = async (lat, lng, businessType, filters = [], isMa
         validationError.errorType = data.error_type;
         throw validationError;
       }
-      
+
       // Regular error with message from backend
       if (data.error) {
         throw new Error(data.error);
       }
     }
-    
+
     throw error;
   }
 };
@@ -139,7 +139,7 @@ export const analyzeLocation = async (lat, lng, businessType, filters = [], isMa
 export const getIsochrone = async (lat, lng, distanceKmOrMode = 1.0, timeMinutes = null) => {
   try {
     let payload = { lat, lng };
-    
+
     // Support both new format (distance_km) and legacy (mode + time_minutes)
     if (typeof distanceKmOrMode === 'number' && timeMinutes === null) {
       payload.distance_km = distanceKmOrMode;
@@ -149,7 +149,7 @@ export const getIsochrone = async (lat, lng, distanceKmOrMode = 1.0, timeMinutes
     } else {
       payload.distance_km = distanceKmOrMode;
     }
-    
+
     const response = await api.post('/isochrone', payload);
     return response.data;
   } catch (error) {
@@ -229,5 +229,7 @@ export const healthCheck = async () => {
     throw error;
   }
 };
+
+
 
 export default api;

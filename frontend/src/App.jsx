@@ -13,6 +13,7 @@ import { BusinessTypeSelector, ProximityFilters } from './components/Filters';
 import { SearchBar } from './components/Search';
 import { MapView } from './components/Map';
 import { AnalysisPanel, LoadingProgress } from './components/Dashboard';
+import { ChatBot } from './components/Chat';
 
 // Hooks
 import { useAnalysis } from './hooks';
@@ -27,11 +28,11 @@ function Toast({ message, type = 'error', onClose }) {
     return () => clearTimeout(timer);
   }, [onClose]);
 
-  const bgColor = type === 'error' 
-    ? 'bg-red-500/95 border-red-400' 
-    : type === 'warning' 
-    ? 'bg-amber-500/95 border-amber-400'
-    : 'bg-emerald-500/95 border-emerald-400';
+  const bgColor = type === 'error'
+    ? 'bg-red-500/95 border-red-400'
+    : type === 'warning'
+      ? 'bg-amber-500/95 border-amber-400'
+      : 'bg-emerald-500/95 border-emerald-400';
 
   const icon = type === 'error' ? (
     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -56,7 +57,7 @@ function Toast({ message, type = 'error', onClose }) {
         </p>
         <p className="text-white/95 mt-1">{message}</p>
       </div>
-      <button 
+      <button
         onClick={onClose}
         className="text-white/80 hover:text-white transition-colors p-1"
       >
@@ -71,34 +72,32 @@ function Toast({ message, type = 'error', onClose }) {
 export default function App() {
   // Step 1: Business Type
   const [businessType, setBusinessType] = useState(null);
-  
+
   // Step 2: Proximity Filters
   const [selectedFilters, setSelectedFilters] = useState([]);
-  
+
   // Step 3: Selected Location
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  
   // Toast notification state
   const [toast, setToast] = useState(null);
-  
   // Analysis state
-  const { 
-    analysis, 
-    isochrone, 
-    isLoading, 
+  const {
+    analysis,
+    isochrone,
+    isLoading,
     error,
     loadingStatus,
-    analyze, 
-    clearAnalysis 
+    analyze,
+    clearAnalysis
   } = useAnalysis();
-  
+
   // Panel state
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  
   // Map display toggles
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [showCompetitors, setShowCompetitors] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Handle location selection - geocode if needed
   const handleLocationSelect = useCallback(async (location) => {
@@ -107,7 +106,7 @@ export default function App() {
       setSelectedLocation(location);
       return;
     }
-    
+
     // Otherwise, geocode the location name to get coordinates
     setIsGeocoding(true);
     try {
@@ -147,7 +146,7 @@ export default function App() {
   // Handle analyze button click
   const handleAnalyze = useCallback(async () => {
     if (!selectedLocation || !businessType) return;
-    
+
     // Ensure we have coordinates
     if (selectedLocation.lat == null || selectedLocation.lng == null) {
       setToast({
@@ -156,13 +155,13 @@ export default function App() {
       });
       return;
     }
-    
+
     // Clear any existing toast
     setToast(null);
-    
+
     // Run analysis (this clears markers internally before fetching)
     const result = await analyze(selectedLocation, businessType, selectedFilters);
-    
+
     // Handle validation errors
     if (!result.success) {
       if (result.isValidationError) {
@@ -181,7 +180,7 @@ export default function App() {
       });
       return;
     }
-    
+
     // Success - open the panel
     setIsPanelOpen(true);
   }, [selectedLocation, businessType, selectedFilters, analyze]);
@@ -202,13 +201,13 @@ export default function App() {
     <div className="h-screen flex flex-col bg-canvas-base">
       {/* Toast Notification for Validation Errors */}
       {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
-      
+
       {/* Header */}
       <Header />
 
@@ -327,9 +326,9 @@ export default function App() {
                   </p>
                   <p className="text-xs text-slate-500">Spots Found</p>
                 </div>
-                
+
                 <div className="w-px h-12 bg-surface-border" />
-                
+
                 {/* Stats preview */}
                 <div className="text-left">
                   <p className="text-sm text-slate-300">
@@ -339,7 +338,7 @@ export default function App() {
                     <span className="text-accent-glow font-medium">{analysis.landmarks?.total || 0}</span> landmarks
                   </p>
                 </div>
-                
+
                 {/* Expand hint */}
                 <div className="text-slate-500 group-hover:text-slate-300 transition-colors">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -348,20 +347,19 @@ export default function App() {
                 </div>
               </div>
             </button>
-            
+
             {/* Map Layer Toggle Buttons */}
             <div className="glass-panel p-3 flex gap-2">
               <button
                 onClick={() => setShowLandmarks(!showLandmarks)}
-                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
-                  showLandmarks 
-                    ? 'bg-cyan-500 text-white' 
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${showLandmarks
+                    ? 'bg-cyan-500 text-white'
                     : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
-                }`}
+                  }`}
               >
-                <img 
-                  src="/icons/building.svg" 
-                  alt="" 
+                <img
+                  src="/icons/building.svg"
+                  alt=""
                   className="w-4 h-4"
                   style={{ filter: showLandmarks ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
                 />
@@ -369,15 +367,14 @@ export default function App() {
               </button>
               <button
                 onClick={() => setShowCompetitors(!showCompetitors)}
-                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
-                  showCompetitors 
-                    ? 'bg-rose-500 text-white' 
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${showCompetitors
+                    ? 'bg-rose-500 text-white'
                     : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
-                }`}
+                  }`}
               >
-                <img 
-                  src="/icons/store.svg" 
-                  alt="" 
+                <img
+                  src="/icons/store.svg"
+                  alt=""
                   className="w-4 h-4"
                   style={{ filter: showCompetitors ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
                 />
@@ -395,6 +392,16 @@ export default function App() {
         isOpen={isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
         onViewSpot={handleViewSpot}
+        onOpenChat={() => setIsChatOpen(true)}
+      />
+
+      {/* Chat Bot */}
+      <ChatBot
+        selectedLocation={selectedLocation}
+        businessType={businessType}
+        analysis={analysis}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
       />
     </div>
   );
