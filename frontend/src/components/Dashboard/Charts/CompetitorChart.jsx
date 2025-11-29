@@ -75,11 +75,12 @@ export default function CompetitorChart({ competitors = [], isLoading }) {
     return (
       <div className="glass-panel p-4">
         <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-          <span>📊</span> Competitor Distribution
+          <img src="/icons/store.svg" alt="" className="w-4 h-4" style={{ filter: 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
+          Competitor Distribution
         </h3>
         <div className="h-48 flex items-center justify-center text-slate-500">
           <div className="text-center">
-            <span className="text-3xl mb-2 block">🎉</span>
+            <img src="/icons/star.svg" alt="" className="w-8 h-8 mx-auto mb-2" style={{ filter: 'invert(74%) sepia(52%) saturate(579%) hue-rotate(93deg) brightness(95%) contrast(88%)' }} />
             <p>No competitors to show</p>
           </div>
         </div>
@@ -90,7 +91,8 @@ export default function CompetitorChart({ competitors = [], isLoading }) {
   return (
     <div className="glass-panel p-4">
       <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-        <span>📊</span> Competitor Distribution
+        <img src="/icons/store.svg" alt="" className="w-4 h-4" style={{ filter: 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
+        Competitor Distribution
       </h3>
       
       <div className="h-48">

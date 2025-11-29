@@ -9,6 +9,8 @@ from flask import Blueprint, request, jsonify
 from services.latlong_service import latlong_service
 from services.places_service import fetch_competitors, fetch_landmarks
 from utils.score_calculator import analyze_location, find_recommended_spots
+from services.relevance_service import get_relevance_score, get_marker_style, RELEVANCE_MATRIX
+from services.validation_service import validate_and_fetch_data, ValidationError
 
 analysis_bp = Blueprint('analysis', __name__)
 
@@ -134,6 +136,42 @@ def analyze():
     
     if not business_type:
         return jsonify({'error': 'business_type is required'}), 400
+    
+    # === LOCATION VALIDATION ===
+    # Validate location before proceeding with analysis
+    print(f"\n🛡️ Running location validation...")
+    is_valid, validation_result = validate_and_fetch_data(lat, lng, business_type)
+    
+    if not is_valid:
+        error_message = validation_result.get('message', 'Location validation failed')
+        error_type = validation_result.get('error_type', 'validation_error')
+        print(f"❌ Location validation failed: {error_message}")
+        return jsonify({
+            'error': error_message,
+            'error_type': error_type,
+            'validation_failed': True
+        }), 400
+    
+    # Use snapped coordinates if available (location is now on a valid road)
+    snapped_location = validation_result.get('snapped_location', {})
+    if snapped_location.get('lat') and snapped_location.get('lng'):
+        # Only use snapped if significantly different (> 5m)
+        original_lat, original_lng = lat, lng
+        snap_lat, snap_lng = snapped_location['lat'], snapped_location['lng']
+        
+        # Calculate distance between original and snapped
+        R = 6371000  # Earth radius in meters
+        dlat = math.radians(snap_lat - original_lat)
+        dlng = math.radians(snap_lng - original_lng)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(original_lat)) * math.cos(math.radians(snap_lat)) * math.sin(dlng/2)**2
+        snap_distance = R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        
+        if snap_distance > 5:
+            lat, lng = snap_lat, snap_lng
+            print(f"📍 Using snapped location: ({lat}, {lng}) - {snap_distance:.1f}m from original")
+    
+    print(f"✅ Location validation passed!")
+    # === END VALIDATION ===
     
     # Get reverse geocode for address info (includes landmark text)
     address_info = latlong_service.reverse_geocode(lat, lng)
@@ -467,3 +505,102 @@ def check_supply_chain():
         'message': message,
         'recommendation': recommendation
     })
+
+
+@analysis_bp.route('/relevance', methods=['GET'])
+def get_relevance_data():
+    """
+    Get relevance scores for marker styling based on business type.
+    Query params:
+        - business_type: The selected business type (optional)
+        - landmark_type: Specific landmark type to get score for (optional)
+    Returns relevance matrix or specific score with marker style.
+    """
+    business_type = request.args.get('business_type', 'other').lower()
+    landmark_type = request.args.get('landmark_type')
+    
+    if landmark_type:
+        # Return specific score and style
+        score = get_relevance_score(business_type, landmark_type)
+        style = get_marker_style(business_type, landmark_type)
+        return jsonify({
+            'business_type': business_type,
+            'landmark_type': landmark_type,
+            'relevance_score': score,
+            'marker_style': style
+        })
+    else:
+        # Return all scores for the business type
+        if business_type in RELEVANCE_MATRIX:
+            scores = RELEVANCE_MATRIX[business_type]
+        else:
+            scores = RELEVANCE_MATRIX['other']
+        
+        # Calculate styles for each landmark type
+        styles = {}
+        for ltype, score in scores.items():
+            styles[ltype] = get_marker_style(business_type, ltype)
+        
+        return jsonify({
+            'business_type': business_type,
+            'relevance_scores': scores,
+            'marker_styles': styles
+        })
+
+
+@analysis_bp.route('/validate-location', methods=['POST'])
+def validate_location_endpoint():
+    """
+    POST /api/validate-location
+    
+    Validates if a location is suitable for business analysis.
+    Performs roadway access, area viability, and road quality checks.
+    
+    Request body:
+    {
+        "lat": 12.9716,
+        "lng": 77.5946,
+        "business_type": "cafe"
+    }
+    
+    Response (success):
+    {
+        "valid": true,
+        "snapped_location": {"lat": 12.9716, "lng": 77.5946},
+        "checks": {...},
+        "message": "Location validated successfully"
+    }
+    
+    Response (failure):
+    {
+        "valid": false,
+        "error": "No such possible business places present in the area.",
+        "error_type": "ghost_town",
+        "validation_failed": true
+    }
+    """
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+    
+    lat = data.get('lat')
+    lng = data.get('lng')
+    business_type = data.get('business_type', 'other')
+    
+    if lat is None or lng is None:
+        return jsonify({'error': 'lat and lng are required'}), 400
+    
+    # Run validation
+    is_valid, result = validate_and_fetch_data(lat, lng, business_type)
+    
+    if not is_valid:
+        return jsonify({
+            'valid': False,
+            'error': result.get('message', 'Location validation failed'),
+            'error_type': result.get('error_type', 'validation_error'),
+            'validation_failed': True
+        }), 400
+    
+    return jsonify(result)
+

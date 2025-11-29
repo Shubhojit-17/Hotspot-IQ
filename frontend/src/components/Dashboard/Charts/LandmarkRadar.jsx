@@ -82,11 +82,12 @@ export default function LandmarkRadar({ landmarks = [], isLoading }) {
     return (
       <div className="glass-panel p-4">
         <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-          <span>🎯</span> Landmark Coverage
+          <img src="/icons/star.svg" alt="" className="w-4 h-4" style={{ filter: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
+          Landmark Coverage
         </h3>
         <div className="h-64 flex items-center justify-center text-slate-500">
           <div className="text-center">
-            <span className="text-3xl mb-2 block">🏜️</span>
+            <img src="/icons/marker.svg" alt="" className="w-8 h-8 mx-auto mb-2 opacity-50" style={{ filter: 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
             <p>No landmarks detected</p>
           </div>
         </div>
@@ -97,7 +98,8 @@ export default function LandmarkRadar({ landmarks = [], isLoading }) {
   return (
     <div className="glass-panel p-4">
       <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-        <span>🎯</span> Landmark Coverage
+        <img src="/icons/star.svg" alt="" className="w-4 h-4" style={{ filter: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
+        Landmark Coverage
       </h3>
       
       <div className="h-64">

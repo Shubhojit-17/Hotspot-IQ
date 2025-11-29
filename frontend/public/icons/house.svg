@@ -1,0 +1,4 @@
+<!-- House/Residential icon - Flaticon style -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path d="M32 4L4 32h8v24h16V40h8v16h16V32h8L32 4zm0 12l12 12v20H36V32h-8v16H20V28l12-12z" fill="currentColor"/>
+</svg>

@@ -1,0 +1,4 @@
+<!-- Restaurant icon - Flaticon style -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path d="M20 4c-1.1 0-2 .9-2 2v20c0 3.3 2.7 6 6 6v26c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2V32c3.3 0 6-2.7 6-6V6c0-1.1-.9-2-2-2s-2 .9-2 2v16h-4V6c0-1.1-.9-2-2-2s-2 .9-2 2v16h-4V6c0-1.1-.9-2-2-2zm24 0c-1.1 0-2 .9-2 2v22c0 2.8 1.6 5.2 4 6.3V58c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2V6c0-7.7-8-2-10-2z" fill="currentColor"/>
+</svg>

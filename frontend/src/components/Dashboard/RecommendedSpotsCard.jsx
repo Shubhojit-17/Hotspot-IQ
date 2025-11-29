@@ -108,7 +108,9 @@ const SpotItem = ({ spot, index, isExpanded, onToggle, onViewOnMap }) => {
             <ul className="space-y-1">
               {spot.reasons.map((reason, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                  <span className="text-emerald-400 mt-0.5">✓</span>
+                  <svg className="w-3 h-3 text-emerald-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
                   <span>{reason}</span>
                 </li>
               ))}
@@ -142,7 +144,7 @@ export default function RecommendedSpotsCard({ spots = [], isLoading, onViewSpot
     return (
       <div className="glass-panel p-5">
         <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-          <span className="text-lg">🎯</span>
+          <img src="/icons/star.svg" alt="" className="w-5 h-5" style={{ filter: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
           Recommended Locations
         </h3>
         <div className="space-y-3">
@@ -166,11 +168,11 @@ export default function RecommendedSpotsCard({ spots = [], isLoading, onViewSpot
     return (
       <div className="glass-panel p-5">
         <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-          <span className="text-lg">🎯</span>
+          <img src="/icons/star.svg" alt="" className="w-5 h-5" style={{ filter: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
           Recommended Locations
         </h3>
         <div className="text-center py-8">
-          <div className="text-4xl mb-3">🔍</div>
+          <img src="/icons/search.svg" alt="" className="w-12 h-12 mx-auto mb-3 opacity-50" style={{ filter: 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
           <p className="text-slate-400 text-sm">
             No optimal spots found in this area.
           </p>
@@ -189,7 +191,7 @@ export default function RecommendedSpotsCard({ spots = [], isLoading, onViewSpot
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-slate-400 flex items-center gap-2">
-          <span className="text-lg">🎯</span>
+          <img src="/icons/star.svg" alt="" className="w-5 h-5" style={{ filter: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
           Recommended Locations
         </h3>
         <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full font-medium">
@@ -201,7 +203,7 @@ export default function RecommendedSpotsCard({ spots = [], isLoading, onViewSpot
       {topSpot && (
         <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">⭐</span>
+            <img src="/icons/star.svg" alt="" className="w-5 h-5" style={{ filter: 'invert(74%) sepia(52%) saturate(579%) hue-rotate(93deg) brightness(95%) contrast(88%)' }} />
             <span className="text-emerald-400 font-semibold text-sm">Best Location Found</span>
           </div>
           <p className="text-xs text-slate-300">

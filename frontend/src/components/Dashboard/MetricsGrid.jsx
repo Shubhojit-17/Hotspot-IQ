@@ -3,6 +3,22 @@
  * Displays key metrics in a compact grid layout
  */
 
+// Icon paths for metrics
+const METRIC_ICONS = {
+  footfall: '/icons/marker.svg',
+  competitors: '/icons/store.svg',
+  landmarks: '/icons/building.svg',
+  density: '/icons/marker.svg',
+};
+
+// Icon color filters
+const ICON_FILTERS = {
+  primary: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)',
+  destructive: 'invert(42%) sepia(93%) saturate(1352%) hue-rotate(326deg) brightness(99%) contrast(97%)',
+  accent: 'invert(70%) sepia(98%) saturate(500%) hue-rotate(152deg) brightness(97%) contrast(90%)',
+  warning: 'invert(74%) sepia(57%) saturate(579%) hue-rotate(10deg) brightness(103%) contrast(101%)',
+};
+
 export default function MetricsGrid({ analysis, isLoading }) {
   const metrics = [
     {
@@ -10,7 +26,7 @@ export default function MetricsGrid({ analysis, isLoading }) {
       label: 'Footfall Index',
       value: analysis?.footfall_index || 0,
       max: 100,
-      icon: '👥',
+      icon: METRIC_ICONS.footfall,
       color: 'primary',
       description: 'Estimated foot traffic potential',
     },
@@ -19,7 +35,7 @@ export default function MetricsGrid({ analysis, isLoading }) {
       label: 'Competitors',
       value: analysis?.competitors?.length || 0,
       suffix: ' nearby',
-      icon: '🏪',
+      icon: METRIC_ICONS.competitors,
       color: 'destructive',
       description: 'Same category businesses',
     },
@@ -28,7 +44,7 @@ export default function MetricsGrid({ analysis, isLoading }) {
       label: 'Landmarks',
       value: analysis?.landmarks?.length || 0,
       suffix: ' found',
-      icon: '🏛️',
+      icon: METRIC_ICONS.landmarks,
       color: 'accent',
       description: 'Key locations nearby',
     },
@@ -37,7 +53,7 @@ export default function MetricsGrid({ analysis, isLoading }) {
       label: 'Competition Density',
       value: analysis?.competitor_density?.toFixed(1) || '0.0',
       suffix: '/km²',
-      icon: '📊',
+      icon: METRIC_ICONS.density,
       color: 'warning',
       description: 'Competitors per square km',
     },
@@ -79,8 +95,13 @@ export default function MetricsGrid({ analysis, isLoading }) {
         >
           {/* Header */}
           <div className="flex items-center gap-2 mb-2">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg border ${getColorClasses(metric.color)}`}>
-              {metric.icon}
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${getColorClasses(metric.color)}`}>
+              <img 
+                src={metric.icon} 
+                alt="" 
+                className="w-5 h-5"
+                style={{ filter: ICON_FILTERS[metric.color] }}
+              />
             </div>
             <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">
               {metric.label}

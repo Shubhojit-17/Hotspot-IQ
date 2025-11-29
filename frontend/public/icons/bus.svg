@@ -1,0 +1,4 @@
+<!-- Bus icon - Flaticon style -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path d="M12 8c-2.2 0-4 1.8-4 4v36c0 2.2 1.8 4 4 4h4v4h8v-4h16v4h8v-4h4c2.2 0 4-1.8 4-4V12c0-2.2-1.8-4-4-4H12zm4 8h32v16H16V16zm0 24c2.2 0 4 1.8 4 4s-1.8 4-4 4-4-1.8-4-4 1.8-4 4-4zm32 0c2.2 0 4 1.8 4 4s-1.8 4-4 4-4-1.8-4-4 1.8-4 4-4z" fill="currentColor"/>
+</svg>

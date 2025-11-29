@@ -8,7 +8,7 @@ import axios from 'axios';
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  timeout: 30000,
+  timeout: 120000, // 2 minutes to handle longer analysis calls
   headers: {
     'Content-Type': 'application/json',
   },
@@ -88,6 +88,7 @@ export const geocodeLocation = async (address) => {
  * @param {Array<string>} filters - Proximity filters
  * @param {boolean} isMajor - Whether this is a major area (larger radius)
  * @returns {Promise<Object>} Analysis results
+ * @throws {Error} With validation error message if location is invalid
  */
 export const analyzeLocation = async (lat, lng, businessType, filters = [], isMajor = false) => {
   try {
@@ -101,6 +102,25 @@ export const analyzeLocation = async (lat, lng, businessType, filters = [], isMa
     return response.data;
   } catch (error) {
     console.error('Analysis error:', error);
+    
+    // Extract validation error from backend response
+    if (error.response?.data) {
+      const data = error.response.data;
+      
+      // Check if this is a validation failure
+      if (data.validation_failed || data.error_type) {
+        const validationError = new Error(data.error || data.message || 'Location validation failed');
+        validationError.isValidationError = true;
+        validationError.errorType = data.error_type;
+        throw validationError;
+      }
+      
+      // Regular error with message from backend
+      if (data.error) {
+        throw new Error(data.error);
+      }
+    }
+    
     throw error;
   }
 };

@@ -33,7 +33,7 @@ export default function ScoreCard({ score, label, isLoading }) {
   return (
     <div className="glass-panel p-5">
       <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-        <span className="text-lg">📊</span>
+        <img src="/icons/star.svg" alt="" className="w-5 h-5" style={{ filter: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
         Opportunity Score
       </h3>
       

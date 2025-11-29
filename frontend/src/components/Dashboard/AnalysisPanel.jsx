@@ -103,7 +103,7 @@ export default function AnalysisPanel({
           {!isLoading && analysis?.location?.digipin && (
             <div className="glass-panel p-4">
               <h3 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
-                <span className="text-lg">📮</span>
+                <img src="/icons/location-pin.svg" alt="" className="w-5 h-5" style={{ filter: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
                 DIGIPIN
               </h3>
               <div className="bg-surface-secondary rounded-lg p-3">

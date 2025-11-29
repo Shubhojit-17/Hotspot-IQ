@@ -67,17 +67,21 @@ export default function useAnalysis() {
   const analyze = useCallback(async (location, businessType, filters) => {
     if (!location || !businessType) {
       setError('Location and business type are required');
-      return;
+      return { success: false, isValidationError: false };
     }
 
     // Validate that we have coordinates
     if (location.lat == null || location.lng == null) {
       setError('Location coordinates are missing. Please select a different location.');
-      return;
+      return { success: false, isValidationError: false };
     }
 
-    setIsLoading(true);
+    // Clear previous analysis data immediately (clears markers)
+    setAnalysis(null);
+    setIsochrone(null);
     setError(null);
+    
+    setIsLoading(true);
     setLoadingStatus({ step: 'init', message: 'Starting analysis...', progress: 0, details: [] });
 
     try {
@@ -85,8 +89,8 @@ export default function useAnalysis() {
       const isMajorArea = location.is_major || false;
       const isochroneRadius = isMajorArea ? 2.5 : 1.5;
       
-      // Step 1: Initialize
-      updateStatus('location', '📍 Setting up location...', 10);
+      // Step 1: Initialize & Validate Location
+      updateStatus('validation', '🛡️ Validating location...', 10);
       await new Promise(r => setTimeout(r, 200)); // Brief delay for UI feedback
 
       // Step 2: Fetch isochrone (area boundary)
@@ -100,8 +104,8 @@ export default function useAnalysis() {
         updateStatus('boundary', '⚠️ Using circular boundary', 25, '⚠️ Using default circular area');
       }
 
-      // Step 3: Run main analysis (competitors + landmarks)
-      updateStatus('analysis', '🔍 Searching for competitors...', 30);
+      // Step 3: Run main analysis (includes validation + competitors + landmarks)
+      updateStatus('analysis', '🔍 Analyzing location & searching for competitors...', 30);
       
       const analysisData = await analyzeLocation(
         location.lat, 
@@ -182,17 +186,33 @@ export default function useAnalysis() {
 
       setAnalysis(normalizedAnalysis);
       setIsochrone(isochroneData);
+      
+      return { success: true, isValidationError: false };
     } catch (err) {
       console.error('Analysis error:', err);
-      setError(err.message || 'Failed to analyze location');
+      
+      // Check if this is a validation error (location invalid)
+      const isValidationError = err.isValidationError || false;
+      const errorMessage = err.message || 'Failed to analyze location';
+      
+      setError(errorMessage);
       setLoadingStatus(prev => ({
         ...prev,
         step: 'error',
-        message: `❌ ${err.message || 'Analysis failed'}`,
+        message: `❌ ${errorMessage}`,
         progress: 0
       }));
+      
+      // Keep analysis and isochrone null (no markers on map)
       setAnalysis(null);
       setIsochrone(null);
+      
+      return { 
+        success: false, 
+        isValidationError,
+        errorType: err.errorType,
+        errorMessage 
+      };
     } finally {
       setIsLoading(false);
     }

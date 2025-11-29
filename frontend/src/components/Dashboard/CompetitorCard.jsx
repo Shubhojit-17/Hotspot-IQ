@@ -37,7 +37,7 @@ export default function CompetitorCard({ competitors = [], isLoading }) {
     <div className="glass-panel p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-slate-400 flex items-center gap-2">
-          <span className="text-lg">🏪</span>
+          <img src="/icons/store.svg" alt="" className="w-5 h-5" style={{ filter: 'invert(42%) sepia(93%) saturate(1352%) hue-rotate(326deg) brightness(99%) contrast(97%)' }} />
           Nearby Competitors
         </h3>
         {!isLoading && (
@@ -61,7 +61,7 @@ export default function CompetitorCard({ competitors = [], isLoading }) {
         </div>
       ) : competitors.length === 0 ? (
         <div className="text-center py-6">
-          <span className="text-2xl mb-2 block">🎉</span>
+          <img src="/icons/star.svg" alt="" className="w-8 h-8 mx-auto mb-2" style={{ filter: 'invert(74%) sepia(52%) saturate(579%) hue-rotate(93deg) brightness(95%) contrast(88%)' }} />
           <p className="text-slate-400 text-sm">No competitors nearby!</p>
           <p className="text-slate-500 text-xs mt-1">Great opportunity zone</p>
         </div>

@@ -1,0 +1,4 @@
+<!-- Bank/ATM icon - Flaticon style -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path d="M32 4L4 16v4h56v-4L32 4zM8 24v28h8V24H8zm16 0v28h8V24h-8zm16 0v28h8V24h-8zm16 0v28h8V24h-8zM4 56v4h56v-4H4z" fill="currentColor"/>
+</svg>

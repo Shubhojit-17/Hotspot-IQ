@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="heatGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F7B731"/>
+      <stop offset="100%" style="stop-color:#EB5B3C"/>
+    </linearGradient>
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A5F"/>
+      <stop offset="100%" style="stop-color:#0F2439"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Heatmap base -->
+  <ellipse cx="16" cy="25" rx="14" ry="5" fill="#F7B731" opacity="0.9"/>
+  <ellipse cx="16" cy="24" rx="10" ry="4" fill="#F5A623"/>
+  <ellipse cx="16" cy="23" rx="6" ry="2.5" fill="#EB5B3C"/>
+  
+  <!-- Pin -->
+  <path d="M16 3 C10.5 3 6 7.5 6 13 C6 18.5 16 26 16 26 C16 26 26 18.5 26 13 C26 7.5 21.5 3 16 3 Z" 
+        fill="url(#pinGrad)"/>
+  
+  <!-- Inner circles -->
+  <circle cx="16" cy="12" r="5" fill="white"/>
+  <circle cx="16" cy="12" r="2.5" fill="#F5A623"/>
+</svg>

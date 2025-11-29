@@ -3,7 +3,7 @@
  * Hotspot IQ - Location Intelligence Platform
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 // Layout
 import { Header } from './components/Layout';
@@ -20,6 +20,54 @@ import { useAnalysis } from './hooks';
 // API
 import { geocodeLocation } from './services/api';
 
+// Toast notification component
+function Toast({ message, type = 'error', onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 8000); // Auto-close after 8 seconds
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const bgColor = type === 'error' 
+    ? 'bg-red-500/95 border-red-400' 
+    : type === 'warning' 
+    ? 'bg-amber-500/95 border-amber-400'
+    : 'bg-emerald-500/95 border-emerald-400';
+
+  const icon = type === 'error' ? (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  ) : type === 'warning' ? (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ) : (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+  );
+
+  return (
+    <div className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-50 ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl border-2 flex items-center gap-4 max-w-lg animate-slide-down`}>
+      {icon}
+      <div className="flex-1">
+        <p className="font-semibold text-sm uppercase tracking-wide opacity-90">
+          {type === 'error' ? 'Location Invalid' : type === 'warning' ? 'Warning' : 'Success'}
+        </p>
+        <p className="text-white/95 mt-1">{message}</p>
+      </div>
+      <button 
+        onClick={onClose}
+        className="text-white/80 hover:text-white transition-colors p-1"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   // Step 1: Business Type
   const [businessType, setBusinessType] = useState(null);
@@ -30,6 +78,9 @@ export default function App() {
   // Step 3: Selected Location
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  
+  // Toast notification state
+  const [toast, setToast] = useState(null);
   
   // Analysis state
   const { 
@@ -44,6 +95,10 @@ export default function App() {
   
   // Panel state
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  
+  // Map display toggles
+  const [showLandmarks, setShowLandmarks] = useState(true);
+  const [showCompetitors, setShowCompetitors] = useState(true);
 
   // Handle location selection - geocode if needed
   const handleLocationSelect = useCallback(async (location) => {
@@ -95,11 +150,39 @@ export default function App() {
     
     // Ensure we have coordinates
     if (selectedLocation.lat == null || selectedLocation.lng == null) {
-      alert('Location coordinates are missing. Please select a location from the search results.');
+      setToast({
+        message: 'Location coordinates are missing. Please select a location from the search results.',
+        type: 'warning'
+      });
       return;
     }
     
-    await analyze(selectedLocation, businessType, selectedFilters);
+    // Clear any existing toast
+    setToast(null);
+    
+    // Run analysis (this clears markers internally before fetching)
+    const result = await analyze(selectedLocation, businessType, selectedFilters);
+    
+    // Handle validation errors
+    if (!result.success) {
+      if (result.isValidationError) {
+        // Show validation error toast - map remains clear
+        setToast({
+          message: result.errorMessage,
+          type: 'error'
+        });
+        // Don't open the panel on validation error
+        return;
+      }
+      // For other errors, show warning toast
+      setToast({
+        message: result.errorMessage || 'Analysis failed. Please try again.',
+        type: 'warning'
+      });
+      return;
+    }
+    
+    // Success - open the panel
     setIsPanelOpen(true);
   }, [selectedLocation, businessType, selectedFilters, analyze]);
 
@@ -117,6 +200,15 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col bg-canvas-base">
+      {/* Toast Notification for Validation Errors */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
+      
       {/* Header */}
       <Header />
 
@@ -131,6 +223,9 @@ export default function App() {
           isochrone={isochrone}
           onMapClick={handleMapClick}
           onSpotClick={handleViewSpot}
+          showLandmarks={showLandmarks}
+          showCompetitors={showCompetitors}
+          businessType={businessType}
         />
 
         {/* Control Panel - Left Side */}
@@ -190,7 +285,10 @@ export default function App() {
                     Finding location...
                   </span>
                 ) : (
-                  '🔍 Analyze Location'
+                  <span className="flex items-center gap-2">
+                    <img src="/icons/search.svg" alt="" className="w-5 h-5" style={{ filter: 'brightness(0) invert(1)' }} />
+                    Analyze Location
+                  </span>
                 )}
               </button>
             )}
@@ -204,7 +302,9 @@ export default function App() {
             {error && (
               <div className="glass-panel p-4 border-destructive-glow/50 bg-destructive-glow/10">
                 <p className="text-destructive-glow text-sm flex items-center gap-2">
-                  <span>⚠️</span>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
                   {error}
                 </p>
               </div>
@@ -212,12 +312,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* Quick Stats - Bottom Right */}
+        {/* Quick Stats - Top Right */}
         {selectedLocation && !isLoading && analysis && (
-          <div className="absolute right-4 bottom-4 z-10">
+          <div className="absolute right-4 top-4 z-10 space-y-2">
             <button
               onClick={() => setIsPanelOpen(true)}
-              className="glass-panel p-4 hover:bg-surface-elevated transition-colors cursor-pointer group"
+              className="glass-panel p-4 hover:bg-surface-elevated transition-colors cursor-pointer group w-full"
             >
               <div className="flex items-center gap-4">
                 {/* Recommended spots preview */}
@@ -248,6 +348,42 @@ export default function App() {
                 </div>
               </div>
             </button>
+            
+            {/* Map Layer Toggle Buttons */}
+            <div className="glass-panel p-3 flex gap-2">
+              <button
+                onClick={() => setShowLandmarks(!showLandmarks)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+                  showLandmarks 
+                    ? 'bg-cyan-500 text-white' 
+                    : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
+                }`}
+              >
+                <img 
+                  src="/icons/building.svg" 
+                  alt="" 
+                  className="w-4 h-4"
+                  style={{ filter: showLandmarks ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
+                />
+                <span>{showLandmarks ? 'Landmarks ON' : 'Landmarks OFF'}</span>
+              </button>
+              <button
+                onClick={() => setShowCompetitors(!showCompetitors)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+                  showCompetitors 
+                    ? 'bg-rose-500 text-white' 
+                    : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
+                }`}
+              >
+                <img 
+                  src="/icons/store.svg" 
+                  alt="" 
+                  className="w-4 h-4"
+                  style={{ filter: showCompetitors ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
+                />
+                <span>{showCompetitors ? 'Competitors ON' : 'Competitors OFF'}</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

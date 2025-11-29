@@ -1,0 +1,4 @@
+<!-- Clothing icon - Flaticon style -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path d="M24 4l-16 12v12l8-4v36h32V24l8 4V16L40 4h-4c0 4.4-3.6 8-8 8s-8-3.6-8-8h-4v8c0 2.2 1.8 4 4 4h8c2.2 0 4-1.8 4-4V4h-8z" fill="currentColor"/>
+</svg>

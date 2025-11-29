@@ -8,8 +8,8 @@ export default function Header() {
     <header className="bg-surface-elevated/80 backdrop-blur-sm border-b border-surface-border px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
         {/* Logo */}
-        <div className="w-10 h-10 bg-gradient-to-br from-primary-glow to-accent-glow rounded-lg flex items-center justify-center shadow-glow-primary">
-          <span className="text-xl">📍</span>
+        <div className="w-10 h-10 flex items-center justify-center">
+          <img src="/logo.svg" alt="Hotspot IQ" className="w-10 h-10" />
         </div>
         
         {/* Brand */}

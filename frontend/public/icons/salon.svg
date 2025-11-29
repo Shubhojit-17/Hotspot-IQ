@@ -1,0 +1,4 @@
+<!-- Salon icon - Flaticon style -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path d="M32 4C20 4 12 16 12 28c0 8 4 15 10 19v9c0 2.2 1.8 4 4 4h12c2.2 0 4-1.8 4-4v-9c6-4 10-11 10-19C52 16 44 4 32 4zm-4 28c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm8 0c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z" fill="currentColor"/>
+</svg>

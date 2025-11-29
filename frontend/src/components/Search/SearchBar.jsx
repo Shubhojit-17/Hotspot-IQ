@@ -151,7 +151,7 @@ export default function SearchBar({ onLocationSelect, disabled }) {
         {/* Search Input */}
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            🏘️
+            <img src="/icons/search.svg" alt="" className="w-5 h-5" style={{ filter: 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
           </span>
           <input
             ref={inputRef}
@@ -210,7 +210,13 @@ export default function SearchBar({ onLocationSelect, disabled }) {
                   >
                     {/* Show different icon for major areas vs others */}
                     <span className="mt-0.5">
-                      {suggestion.is_major ? '⭐' : suggestion.is_area ? '🏘️' : '📍'}
+                      {suggestion.is_major ? (
+                        <img src="/icons/star.svg" alt="" className="w-4 h-4" style={{ filter: 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
+                      ) : suggestion.is_area ? (
+                        <img src="/icons/house.svg" alt="" className="w-4 h-4" style={{ filter: 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
+                      ) : (
+                        <img src="/icons/location-pin.svg" alt="" className="w-4 h-4" style={{ filter: 'invert(47%) sepia(98%) saturate(1953%) hue-rotate(207deg) brightness(98%) contrast(94%)' }} />
+                      )}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -244,12 +250,17 @@ export default function SearchBar({ onLocationSelect, disabled }) {
       {/* Hints */}
       {disabled ? (
         <p className="text-xs text-slate-500 flex items-center gap-1">
-          <span className="text-warning-glow">⚠️</span>
+          <svg className="w-4 h-4 text-warning-glow" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
           Select a business type first
         </p>
       ) : (
-        <p className="text-xs text-slate-500">
-          💡 You can also click anywhere on the map to select a location
+        <p className="text-xs text-slate-500 flex items-center gap-1">
+          <svg className="w-4 h-4 text-primary-glow" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          You can also click anywhere on the map to select a location
         </p>
       )}
     </div>
