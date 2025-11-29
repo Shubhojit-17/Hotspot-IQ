@@ -152,7 +152,7 @@ def check_water_body(lat: float, lng: float) -> Dict:
                 
             except overpy.exception.OverpassTooManyRequests:
                 print(f"   ⚠️ Rate limited on {endpoint}, trying next...")
-                time.sleep(2)
+                time.sleep(0.5)
                 continue
             except overpy.exception.OverpassGatewayTimeout:
                 print(f"   ⚠️ Timeout on {endpoint}, trying next...")
@@ -222,7 +222,7 @@ def _verify_land_exists(lat: float, lng: float) -> Dict:
                 }
                 
             except overpy.exception.OverpassTooManyRequests:
-                time.sleep(2)
+                time.sleep(0.5)
                 continue
             except ValidationError:
                 raise
@@ -373,7 +373,7 @@ def _fallback_road_check(lat: float, lng: float, max_distance: float = 100.0) ->
                 }
                 
             except overpy.exception.OverpassTooManyRequests:
-                time.sleep(2)
+                time.sleep(0.5)
                 continue
             except ValidationError:
                 raise
@@ -460,7 +460,7 @@ def check_area_viability(lat: float, lng: float, radius: int = 2000, min_ameniti
                 
             except overpy.exception.OverpassTooManyRequests:
                 print(f"   ⚠️ Rate limited on {endpoint}, trying next...")
-                time.sleep(2)
+                time.sleep(0.5)
                 continue
             except overpy.exception.OverpassGatewayTimeout:
                 print(f"   ⚠️ Timeout on {endpoint}, trying next...")
@@ -567,7 +567,7 @@ def check_road_quality(lat: float, lng: float, business_type: str, radius: int =
                 }
                 
             except overpy.exception.OverpassTooManyRequests:
-                time.sleep(2)
+                time.sleep(0.5)
                 continue
             except ValidationError:
                 raise

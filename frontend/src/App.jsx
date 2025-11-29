@@ -162,7 +162,6 @@ export default function App() {
     setToast(null);
 
     // Run analysis (this clears markers internally before fetching)
-    // Run analysis (this clears markers internally before fetching)
     const result = await analyze(selectedLocation, businessType, selectedFilters, radius);
 
     // Handle validation errors
@@ -186,7 +185,7 @@ export default function App() {
 
     // Success - open the panel
     setIsPanelOpen(true);
-  }, [selectedLocation, businessType, selectedFilters, analyze]);
+  }, [selectedLocation, businessType, selectedFilters, analyze, radius]);
 
   // Handle viewing a recommended spot on the map
   const handleViewSpot = useCallback((spot) => {

@@ -115,7 +115,7 @@ def fetch_nearby_places(
                 
                 # Add delay between retries to avoid rate limiting
                 if attempt > 0:
-                    delay = 2 ** attempt  # Exponential backoff: 2, 4, 8 seconds
+                    delay = 0.5  # Reduced delay
                     print(f"⏳ Waiting {delay}s before retry {attempt + 1}...")
                     time.sleep(delay)
                 
