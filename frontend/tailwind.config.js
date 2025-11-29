@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class', // Enable class-based dark mode
   theme: {
     extend: {
       colors: {
@@ -12,12 +13,24 @@ export default {
           deep: '#020617',  // slate-950
           base: '#0f172a',  // slate-900
         },
+        // Light mode canvas
+        'canvas-light': {
+          deep: '#f8fafc',  // slate-50
+          base: '#f1f5f9',  // slate-100
+        },
         // Surface - Glass layers
         surface: {
           primary: 'rgba(15, 23, 42, 0.8)',
           secondary: 'rgba(30, 41, 59, 0.7)',
           elevated: 'rgba(51, 65, 85, 0.6)',
           border: 'rgba(255, 255, 255, 0.08)',
+        },
+        // Light mode surfaces
+        'surface-light': {
+          primary: 'rgba(255, 255, 255, 0.9)',
+          secondary: 'rgba(248, 250, 252, 0.9)',
+          elevated: 'rgba(241, 245, 249, 0.9)',
+          border: 'rgba(0, 0, 0, 0.1)',
         },
         // Primary - Neon Emerald
         primary: {

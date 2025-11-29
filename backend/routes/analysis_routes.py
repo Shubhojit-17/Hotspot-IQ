@@ -113,6 +113,7 @@ def analyze():
     POST /api/analyze
     
     Performs comprehensive location analysis including opportunity score.
+    Now uses area-based validation to consider the entire radius, not just center.
     """
     data = request.get_json()
     
@@ -137,43 +138,56 @@ def analyze():
     if not business_type:
         return jsonify({'error': 'business_type is required'}), 400
     
-    # === LOCATION VALIDATION ===
-    # Validate location before proceeding with analysis
-    print(f"\n🛡️ Running location validation...")
-    is_valid, validation_result = validate_and_fetch_data(lat, lng, business_type)
+    # Store original center for reference
+    center_lat, center_lng = lat, lng
+    
+    # === AREA-BASED VALIDATION ===
+    # Validate the entire radius area, not just the center point
+    # This allows analysis even when center is in water, if there's land nearby
+    print(f"\n🛡️ Running area-based validation (radius={radius}m)...")
+    is_valid, validation_result = validate_and_fetch_data(lat, lng, business_type, radius=radius)
     
     if not is_valid:
         error_message = validation_result.get('message', 'Location validation failed')
         error_type = validation_result.get('error_type', 'validation_error')
-        print(f"❌ Location validation failed: {error_message}")
+        print(f"❌ Area validation failed: {error_message}")
         return jsonify({
             'error': error_message,
             'error_type': error_type,
             'validation_failed': True
         }), 400
     
-    # Use snapped coordinates if available (location is now on a valid road)
+    # Use the analysis point (best land location found within radius)
+    # This could be the center if it was valid, or a nearby land point if center was in water
+    analysis_point = validation_result.get('analysis_point', {})
+    if analysis_point.get('lat') and analysis_point.get('lng'):
+        lat, lng = analysis_point['lat'], analysis_point['lng']
+        print(f"📍 Using analysis point: ({lat}, {lng})")
+    
+    # Also check for snapped location (on-road point)
     snapped_location = validation_result.get('snapped_location', {})
     if snapped_location.get('lat') and snapped_location.get('lng'):
-        # Only use snapped if significantly different (> 5m)
-        original_lat, original_lng = lat, lng
         snap_lat, snap_lng = snapped_location['lat'], snapped_location['lng']
         
-        # Calculate distance between original and snapped
+        # Calculate distance between analysis point and snapped
         R = 6371000  # Earth radius in meters
-        dlat = math.radians(snap_lat - original_lat)
-        dlng = math.radians(snap_lng - original_lng)
-        a = math.sin(dlat/2)**2 + math.cos(math.radians(original_lat)) * math.cos(math.radians(snap_lat)) * math.sin(dlng/2)**2
+        dlat = math.radians(snap_lat - lat)
+        dlng = math.radians(snap_lng - lng)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat)) * math.cos(math.radians(snap_lat)) * math.sin(dlng/2)**2
         snap_distance = R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
         
-        if snap_distance > 5:
+        # Use snapped if it's close to analysis point (within 100m)
+        if snap_distance < 100:
             lat, lng = snap_lat, snap_lng
-            print(f"📍 Using snapped location: ({lat}, {lng}) - {snap_distance:.1f}m from original")
+            print(f"📍 Using snapped location: ({lat}, {lng}) - {snap_distance:.1f}m from analysis point")
     
-    print(f"✅ Location validation passed!")
+    print(f"✅ Area validation passed!")
+    print(f"   Center: ({center_lat}, {center_lng})")
+    print(f"   Analysis point: ({lat}, {lng})")
     # === END VALIDATION ===
     
     # Get reverse geocode for address info (includes landmark text)
+    # Use the analysis point for more accurate address
     address_info = latlong_service.reverse_geocode(lat, lng)
     
     # Parse landmarks from reverse geocode landmark field
@@ -190,16 +204,17 @@ def analyze():
         (0.5, 0.5), (-0.5, 0.5), (0.5, -0.5), (-0.5, -0.5),  # Diagonals at 50% radius
     ]
     
-    # Convert radius to lat/lng offsets
+    # Convert radius to lat/lng offsets - use original center for sampling
     lat_offset_per_m = 1 / 111000  # ~1 degree per 111km
-    lng_offset_per_m = 1 / (111000 * math.cos(math.radians(lat)))
+    lng_offset_per_m = 1 / (111000 * math.cos(math.radians(center_lat)))
     
     nearby_landmarks = []
     landmark_names_seen = set()
     
+    # Use center_lat/center_lng for sampling to cover the whole selected area
     for lat_mult, lng_mult in sample_offsets:
-        sample_lat = lat + (lat_mult * radius * lat_offset_per_m)
-        sample_lng = lng + (lng_mult * radius * lng_offset_per_m)
+        sample_lat = center_lat + (lat_mult * radius * lat_offset_per_m)
+        sample_lng = center_lng + (lng_mult * radius * lng_offset_per_m)
         
         # Get landmarks at this sample point
         sample_landmarks = latlong_service.get_landmarks(sample_lat, sample_lng)
@@ -210,25 +225,25 @@ def analyze():
                 landmark_names_seen.add(lm_name)
                 nearby_landmarks.append(lm)
     
-    # Fetch competitors using the new places_service (covers entire radius)
-    print(f"🔎 Fetching competitors: category={business_type}, radius={radius}m")
-    osm_competitors = fetch_competitors(lat, lng, radius, business_type)
+    # Fetch competitors using the new places_service (covers entire radius from center)
+    print(f"🔎 Fetching competitors: category={business_type}, radius={radius}m from center")
+    osm_competitors = fetch_competitors(center_lat, center_lng, radius, business_type)
     
     # Fetch landmarks using places_service for better area coverage
-    osm_landmarks = fetch_landmarks(lat, lng, radius)
+    osm_landmarks = fetch_landmarks(center_lat, center_lng, radius)
     
     # Also fetch landmarks from LatLong POI API for additional data
     latlong_poi_categories = ['hospital', 'school', 'hotel', 'bank', 'atm', 'mall', 'restaurant']
     latlong_pois = []
     for poi_cat in latlong_poi_categories:
         try:
-            poi_result = latlong_service.get_poi(lat, lng, poi_cat, radius)
+            poi_result = latlong_service.get_poi(center_lat, center_lng, poi_cat, radius)
             for poi in poi_result.get('pois', []):
                 latlong_pois.append({
                     'name': poi.get('name', ''),
                     'category': poi_cat,
-                    'lat': poi.get('lat', lat),
-                    'lng': poi.get('lng', lng)
+                    'lat': poi.get('lat', center_lat),
+                    'lng': poi.get('lng', center_lng)
                 })
         except Exception as e:
             print(f"⚠️ Error fetching POI {poi_cat}: {e}")
@@ -278,13 +293,13 @@ def analyze():
     
     print(f"🏛️ Total landmarks combined: {len(all_landmarks)}")
     
-    # Format competitors with distance calculation
+    # Format competitors with distance calculation from center
     all_competitors = []
     for comp in osm_competitors:
-        # Calculate approximate distance in meters
+        # Calculate approximate distance in meters from center
         R = 6371000  # Earth's radius in meters
-        lat1, lon1 = math.radians(lat), math.radians(lng)
-        lat2, lon2 = math.radians(comp.get('lat', lat)), math.radians(comp.get('lng', lng))
+        lat1, lon1 = math.radians(center_lat), math.radians(center_lng)
+        lat2, lon2 = math.radians(comp.get('lat', center_lat)), math.radians(comp.get('lng', center_lng))
         dlat, dlon = lat2 - lat1, lon2 - lon1
         a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
         distance = int(R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)))
@@ -301,7 +316,7 @@ def analyze():
     # Sort competitors by distance
     all_competitors.sort(key=lambda x: x.get('distance', 9999))
     
-    # Get Digipin
+    # Get Digipin using analysis point for accurate pincode
     digipin_info = latlong_service.get_digipin(lat, lng)
     
     # Build landmarks structure for analysis
@@ -320,11 +335,11 @@ def analyze():
     # Perform analysis
     analysis_result = analyze_location(landmarks_data, competitors_data, business_type)
     
-    # Find recommended spots for business setup
+    # Find recommended spots for business setup (search from center of selected area)
     print(f"🎯 Finding recommended spots in the area...")
     recommended_spots = find_recommended_spots(
-        center_lat=lat,
-        center_lng=lng,
+        center_lat=center_lat,
+        center_lng=center_lng,
         radius=radius,
         competitors=all_competitors,
         landmarks=all_landmarks,
@@ -335,12 +350,15 @@ def analyze():
     # Compile response - return ALL competitors for heatmap accuracy
     response = {
         'location': {
-            'lat': lat,
+            'lat': lat,  # Analysis point (best usable location found)
             'lng': lng,
+            'center_lat': center_lat,  # Original selected center
+            'center_lng': center_lng,
             'address': address_info,
             'digipin': digipin_info.get('digipin', '')
         },
         'business_type': business_type,
+        'radius': radius,
         'filters_applied': filters,
         'recommended_spots': recommended_spots,  # NEW: Recommended business locations
         'competitors': {

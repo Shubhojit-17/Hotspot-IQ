@@ -21,7 +21,7 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-export default function SearchBar({ onLocationSelect, disabled }) {
+export default function SearchBar({ onLocationSelect, disabled, selectedLocation }) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -32,6 +32,15 @@ export default function SearchBar({ onLocationSelect, disabled }) {
   const dropdownRef = useRef(null);
   
   const debouncedQuery = useDebounce(query, 300);
+
+  // Update query when selectedLocation changes (e.g., from map click)
+  useEffect(() => {
+    if (selectedLocation?.name) {
+      setQuery(selectedLocation.name);
+      setIsOpen(false);
+      setSuggestions([]);
+    }
+  }, [selectedLocation]);
 
   // Fetch suggestions when debounced query changes
   useEffect(() => {

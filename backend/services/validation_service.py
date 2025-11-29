@@ -2,6 +2,10 @@
 Hotspot IQ - Location Validation Service
 Validates if a location is suitable for business analysis.
 
+UPDATED: Now validates the ENTIRE RADIUS AREA, not just the center point.
+This allows analysis even when the center is in water, as long as there's
+usable land within the selected radius.
+
 Performs four levels of validation:
 1. Water Body Check - Detect if location is in ocean/lake/river
 2. Roadway Access Check - Using LatLong Snap to Roads API + Overpass fallback
@@ -46,6 +50,45 @@ class ValidationError(Exception):
         super().__init__(self.message)
 
 
+def _generate_sample_points(lat: float, lng: float, radius: int) -> List[Tuple[float, float]]:
+    """
+    Generate sample points within the radius for area-based validation.
+    Returns points at center, cardinal directions, and diagonals at various distances.
+    
+    Args:
+        lat: Center latitude
+        lng: Center longitude
+        radius: Radius in meters
+        
+    Returns:
+        List of (lat, lng) tuples representing sample points
+    """
+    # Convert radius to lat/lng offsets
+    lat_offset_per_m = 1 / 111000  # ~1 degree per 111km
+    lng_offset_per_m = 1 / (111000 * math.cos(math.radians(lat)))
+    
+    # Sample offsets as fractions of radius (lat_mult, lng_mult)
+    # More points near edges to find land if center is in water
+    offsets = [
+        (0, 0),  # Center
+        # Cardinal directions at 30%, 60%, 90% of radius
+        (0.3, 0), (-0.3, 0), (0, 0.3), (0, -0.3),
+        (0.6, 0), (-0.6, 0), (0, 0.6), (0, -0.6),
+        (0.9, 0), (-0.9, 0), (0, 0.9), (0, -0.9),
+        # Diagonals at 40%, 70% of radius
+        (0.28, 0.28), (-0.28, 0.28), (0.28, -0.28), (-0.28, -0.28),
+        (0.5, 0.5), (-0.5, 0.5), (0.5, -0.5), (-0.5, -0.5),
+    ]
+    
+    points = []
+    for lat_mult, lng_mult in offsets:
+        sample_lat = lat + (lat_mult * radius * lat_offset_per_m)
+        sample_lng = lng + (lng_mult * radius * lng_offset_per_m)
+        points.append((sample_lat, sample_lng))
+    
+    return points
+
+
 def _calculate_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Calculate distance between two points in meters using Haversine formula."""
     R = 6371000  # Earth's radius in meters
@@ -62,10 +105,211 @@ def _calculate_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> f
     return R * c
 
 
+def _is_point_in_water(lat: float, lng: float) -> Tuple[bool, Optional[str]]:
+    """
+    Check if a single point is in water.
+    
+    Args:
+        lat: Latitude
+        lng: Longitude
+        
+    Returns:
+        Tuple of (is_in_water: bool, water_type: Optional[str])
+    """
+    try:
+        query = f"""
+        [out:json][timeout:10];
+        (
+            way["natural"="water"](around:50,{lat},{lng});
+            relation["natural"="water"](around:50,{lat},{lng});
+            way["natural"="coastline"](around:500,{lat},{lng});
+            way["water"](around:50,{lat},{lng});
+            relation["water"](around:50,{lat},{lng});
+            way["waterway"~"river|stream|canal"](around:50,{lat},{lng});
+            way["place"~"sea|ocean"](around:200,{lat},{lng});
+            relation["place"~"sea|ocean"](around:200,{lat},{lng});
+        );
+        out body;
+        """
+        
+        for endpoint in OVERPASS_ENDPOINTS[:2]:  # Use fewer endpoints for speed
+            try:
+                api = overpy.Overpass(url=endpoint)
+                result = api.query(query)
+                
+                water_features = len(result.ways) + len(result.relations)
+                
+                if water_features > 0:
+                    water_type = "water body"
+                    for way in result.ways:
+                        tags = way.tags
+                        if tags.get('natural') == 'coastline' or tags.get('place') in ['sea', 'ocean']:
+                            water_type = "ocean or sea"
+                            break
+                        elif tags.get('natural') == 'water':
+                            water_type = tags.get('water', 'lake or reservoir')
+                            break
+                        elif tags.get('waterway'):
+                            water_type = tags.get('waterway', 'river or stream')
+                            break
+                    return True, water_type
+                
+                return False, None
+                
+            except Exception:
+                continue
+        
+        return False, None  # Assume not water if check fails
+        
+    except Exception:
+        return False, None
+
+
+def _is_point_on_land(lat: float, lng: float) -> bool:
+    """
+    Check if a point has land features (roads, buildings, amenities).
+    
+    Args:
+        lat: Latitude
+        lng: Longitude
+        
+    Returns:
+        True if land features found nearby
+    """
+    try:
+        query = f"""
+        [out:json][timeout:10];
+        (
+            way["highway"](around:200,{lat},{lng});
+            way["building"](around:200,{lat},{lng});
+            node["amenity"](around:300,{lat},{lng});
+        );
+        out count;
+        """
+        
+        for endpoint in OVERPASS_ENDPOINTS[:2]:
+            try:
+                api = overpy.Overpass(url=endpoint)
+                result = api.query(query)
+                
+                total = len(result.nodes) + len(result.ways)
+                return total > 0
+                
+            except Exception:
+                continue
+        
+        return False
+        
+    except Exception:
+        return False
+
+
+def _find_best_land_point(center_lat: float, center_lng: float, radius: int) -> Optional[Tuple[float, float]]:
+    """
+    Find the best land point within the radius.
+    Searches for areas with roads/buildings/amenities.
+    
+    Args:
+        center_lat: Center latitude
+        center_lng: Center longitude
+        radius: Radius in meters
+        
+    Returns:
+        Tuple of (lat, lng) of best land point, or None if no land found
+    """
+    print(f"   🔍 Searching for best land location within {radius}m radius...")
+    
+    sample_points = _generate_sample_points(center_lat, center_lng, radius)
+    
+    # Track which points are on land
+    land_points = []
+    
+    for point_lat, point_lng in sample_points:
+        is_water, _ = _is_point_in_water(point_lat, point_lng)
+        
+        if not is_water:
+            # Check if there's land infrastructure
+            if _is_point_on_land(point_lat, point_lng):
+                distance_from_center = _calculate_distance(center_lat, center_lng, point_lat, point_lng)
+                land_points.append((point_lat, point_lng, distance_from_center))
+                print(f"   ✅ Found land at ({point_lat:.5f}, {point_lng:.5f}), {distance_from_center:.0f}m from center")
+    
+    if land_points:
+        # Sort by distance from center (prefer closer points)
+        land_points.sort(key=lambda x: x[2])
+        best = land_points[0]
+        print(f"   📍 Best land point: ({best[0]:.5f}, {best[1]:.5f}), {best[2]:.0f}m from center")
+        return (best[0], best[1])
+    
+    return None
+
+
+def check_water_body_area(center_lat: float, center_lng: float, radius: int = 1000) -> Dict:
+    """
+    Check if the center point is in water. Only searches for alternative land
+    if the center is actually in a water body.
+    
+    This is a WATER-ONLY check - it does NOT validate infrastructure.
+    Infrastructure validation is handled by other checks (roadway, ghost town, etc.)
+    
+    Args:
+        center_lat: Center latitude of the search area
+        center_lng: Center longitude of the search area
+        radius: Search radius in meters
+        
+    Returns:
+        Dict with 'valid', 'is_water', 'water_type', 'message', 'best_land_point'
+        
+    Raises:
+        ValidationError: If center is in water AND no land found in radius
+    """
+    print(f"🌊 Checking if center point is in water ({center_lat}, {center_lng})...")
+    
+    # Only check if the point is in water - NOT for infrastructure
+    center_is_water, water_type = _is_point_in_water(center_lat, center_lng)
+    
+    if not center_is_water:
+        # Center is NOT in water - that's all we need to know here
+        # Other validation steps will check for roads, amenities, etc.
+        print(f"   ✅ Center point is on land (not in water)")
+        return {
+            'valid': True,
+            'is_water': False,
+            'water_type': None,
+            'message': 'Center point is on land',
+            'best_land_point': {'lat': center_lat, 'lng': center_lng}
+        }
+    
+    # Center IS in water - now search for nearby land within the radius
+    print(f"   ⚠️ Center point is in {water_type}, searching for nearby land...")
+    
+    best_point = _find_best_land_point(center_lat, center_lng, radius)
+    
+    if best_point:
+        print(f"   ✅ Found land within radius at ({best_point[0]:.5f}, {best_point[1]:.5f})")
+        return {
+            'valid': True,
+            'is_water': False,
+            'water_type': None,
+            'message': f'Found usable land within the selected area',
+            'best_land_point': {'lat': best_point[0], 'lng': best_point[1]}
+        }
+    
+    # No land found in entire radius - the area is all water
+    print(f"   ❌ No land found in the entire {radius}m radius")
+    raise ValidationError(
+        f"No land found within the selected {radius/1000:.1f}km radius. The entire area appears to be water.",
+        "water_body"
+    )
+
+
 def check_water_body(lat: float, lng: float) -> Dict:
     """
     Step 0: Check if the location is in a water body (ocean, sea, lake, river).
     This is the FIRST check - critical for preventing ocean/lake locations.
+    
+    NOTE: This function checks a single point. For area-based validation,
+    use check_water_body_area() instead.
     
     Args:
         lat: Latitude of the location
@@ -594,6 +838,7 @@ def check_road_quality(lat: float, lng: float, business_type: str, radius: int =
 def validate_location(lat: float, lng: float, business_type: str) -> Dict:
     """
     Master validation function - validates location for business analysis.
+    DEPRECATED: Use validate_area() for area-based validation.
     
     Performs four validation checks in order:
     0. Water Body Check (NEW - detect ocean/lake/river)
@@ -675,22 +920,117 @@ def validate_location(lat: float, lng: float, business_type: str) -> Dict:
     return validation_result
 
 
-def validate_and_fetch_data(lat: float, lng: float, business_type: str) -> Tuple[bool, Dict]:
+def validate_area(center_lat: float, center_lng: float, radius: int, business_type: str) -> Dict:
+    """
+    Area-based validation - validates the entire radius area, not just the center.
+    This is the NEW recommended validation function.
+    
+    If the center is in water or lacks infrastructure, this function will
+    search for the best usable land point within the radius and use that
+    for subsequent validation.
+    
+    Args:
+        center_lat: Center latitude of the selected area
+        center_lng: Center longitude of the selected area
+        radius: Search radius in meters
+        business_type: Type of business being analyzed
+        
+    Returns:
+        Dict with validation results including 'analysis_point' for the best location
+        
+    Raises:
+        ValidationError: If no valid location found within the radius
+    """
+    print(f"\n{'='*60}")
+    print(f"🔍 AREA-BASED VALIDATION")
+    print(f"   Center: ({center_lat}, {center_lng})")
+    print(f"   Radius: {radius}m")
+    print(f"   Business Type: {business_type}")
+    print(f"{'='*60}")
+    
+    validation_result = {
+        'valid': True,
+        'center': {'lat': center_lat, 'lng': center_lng},
+        'radius': radius,
+        'analysis_point': {'lat': center_lat, 'lng': center_lng},
+        'snapped_location': {'lat': center_lat, 'lng': center_lng},
+        'checks': {},
+        'message': 'Area validated successfully'
+    }
+    
+    # Use center point directly for analysis - no water body check needed
+    # The roadway and viability checks will handle edge cases
+    analysis_lat = center_lat
+    analysis_lng = center_lng
+    
+    print(f"   📍 Using analysis point: ({analysis_lat:.5f}, {analysis_lng:.5f})")
+    
+    # Step A: Roadway Access Check - check within the entire radius
+    print("\n📍 Step A: Checking roadway access within radius...")
+    try:
+        roadway_result = check_roadway_access(analysis_lat, analysis_lng, max_distance=float(radius))
+        validation_result['checks']['roadway_access'] = roadway_result
+        
+        # Update to snapped coordinates if available
+        if roadway_result.get('snapped_lat') and roadway_result.get('snapped_lng'):
+            validation_result['snapped_location'] = {
+                'lat': roadway_result['snapped_lat'],
+                'lng': roadway_result['snapped_lng']
+            }
+    except ValidationError as e:
+        print(f"   ❌ FAILED: {e.message}")
+        raise
+    
+    # Step B: Ghost Town Check - check the entire radius from center
+    print("\n📍 Step B: Checking area viability...")
+    try:
+        # Use center and full radius for viability check
+        viability_result = check_area_viability(center_lat, center_lng, radius)
+        validation_result['checks']['area_viability'] = viability_result
+    except ValidationError as e:
+        print(f"   ❌ FAILED: {e.message}")
+        raise
+    
+    # Step C: Road Quality Check (for heavy logistics) at analysis point
+    print("\n📍 Step C: Checking road quality...")
+    try:
+        quality_result = check_road_quality(analysis_lat, analysis_lng, business_type)
+        validation_result['checks']['road_quality'] = quality_result
+    except ValidationError as e:
+        print(f"   ❌ FAILED: {e.message}")
+        raise
+    
+    print(f"\n{'='*60}")
+    print("✅ AREA VALIDATION PASSED!")
+    print(f"   Analysis point: ({validation_result['analysis_point']['lat']:.5f}, {validation_result['analysis_point']['lng']:.5f})")
+    print(f"{'='*60}\n")
+    
+    return validation_result
+
+
+def validate_and_fetch_data(lat: float, lng: float, business_type: str, radius: int = None) -> Tuple[bool, Dict]:
     """
     Master function to validate location and return validation status.
     
     This is the main entry point for location validation before analysis.
+    If radius is provided, uses area-based validation. Otherwise falls back to point validation.
     
     Args:
-        lat: Latitude of the location
-        lng: Longitude of the location
+        lat: Latitude of the location (center if radius provided)
+        lng: Longitude of the location (center if radius provided)
         business_type: Type of business being analyzed
+        radius: Optional search radius in meters for area-based validation
         
     Returns:
         Tuple of (is_valid: bool, result: Dict)
     """
     try:
-        result = validate_location(lat, lng, business_type)
+        if radius and radius > 0:
+            # Use area-based validation
+            result = validate_area(lat, lng, radius, business_type)
+        else:
+            # Fall back to point-based validation
+            result = validate_location(lat, lng, business_type)
         return True, result
     except ValidationError as e:
         print(f"\n❌ VALIDATION FAILED: {e.message}")

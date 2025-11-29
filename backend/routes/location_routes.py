@@ -63,17 +63,23 @@ def geocode():
 @location_bp.route('/reverse-geocode', methods=['GET'])
 def reverse_geocode():
     """
-    GET /api/reverse-geocode?lat={lat}&lng={lng}
+    GET /api/reverse-geocode?lat={lat}&lng={lng}&radius={radius}
     
     Returns address details from coordinates.
+    If radius is provided, samples multiple points to find the most representative area name.
     """
     lat = request.args.get('lat', type=float)
     lng = request.args.get('lng', type=float)
+    radius = request.args.get('radius', type=int, default=0)
     
     if lat is None or lng is None:
         return jsonify({'error': 'lat and lng parameters are required'}), 400
     
-    result = latlong_service.reverse_geocode(lat, lng)
+    # If radius provided, use area-based reverse geocoding
+    if radius and radius > 0:
+        result = latlong_service.reverse_geocode_area(lat, lng, radius)
+    else:
+        result = latlong_service.reverse_geocode(lat, lng)
     
     return jsonify(result)
 

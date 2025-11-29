@@ -1,7 +1,24 @@
 /**
  * LoadingProgress Component - Compact Top-Right Loader
- * Glass-morphic floating card in the extreme top-right corner
+ * Glass-morphic floating card showing dynamic step-by-step progress
  */
+
+// Define all analysis steps in order
+const ANALYSIS_STEPS = [
+  { id: 'validation', label: 'Validating location', icon: '🛡️' },
+  { id: 'boundary', label: 'Area boundary loaded', icon: '🗺️' },
+  { id: 'analysis', label: 'Analyzing location', icon: '🔍' },
+  { id: 'competitors', label: 'Competitors found', icon: '🏪' },
+  { id: 'landmarks', label: 'Landmarks identified', icon: '🏛️' },
+  { id: 'digipin', label: 'Location code retrieved', icon: '📌' },
+  { id: 'spots', label: 'Optimal spots found', icon: '🎯' },
+];
+
+// Get step index for comparison
+const getStepIndex = (stepId) => {
+  const index = ANALYSIS_STEPS.findIndex(s => s.id === stepId);
+  return index === -1 ? -1 : index;
+};
 
 export default function LoadingProgress({ status, isLoading }) {
   if (!isLoading && status.step === '') return null;
@@ -11,9 +28,11 @@ export default function LoadingProgress({ status, isLoading }) {
   // Don't render if complete and not loading
   if (step === 'complete' && !isLoading) return null;
 
+  const currentStepIndex = getStepIndex(step);
+
   return (
     <div className="fixed top-6 right-6 z-50 animate-fadeIn">
-      <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/30 min-w-[280px] max-w-[320px]">
+      <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/30 min-w-[300px] max-w-[340px]">
         {/* Header with spinner */}
         <div className="flex items-center gap-3 mb-3">
           {/* Spinning Emerald Ring */}
@@ -67,26 +86,66 @@ export default function LoadingProgress({ status, isLoading }) {
           />
         </div>
 
-        {/* All details list */}
-        {details.length > 0 && (
-          <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
-            {details.map((detail, index) => (
-              <div key={index} className="flex items-center gap-2 text-xs text-slate-400">
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${index === details.length - 1 ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
-                <span className="truncate">{detail}</span>
+        {/* Step-by-step checklist */}
+        <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+          {ANALYSIS_STEPS.map((analysisStep, index) => {
+            const stepIndex = getStepIndex(analysisStep.id);
+            const isCompleted = currentStepIndex > stepIndex || step === 'complete';
+            const isCurrent = currentStepIndex === stepIndex && step !== 'complete' && step !== 'error';
+            const isPending = currentStepIndex < stepIndex && step !== 'complete';
+            
+            // Get dynamic detail from the details array for completed steps
+            const detail = details.find(d => d.includes(analysisStep.icon));
+            const displayLabel = detail ? detail.replace(analysisStep.icon, '').trim() : analysisStep.label;
+            
+            return (
+              <div 
+                key={analysisStep.id} 
+                className={`flex items-center gap-2.5 text-xs py-1 px-2 rounded-lg transition-all duration-300 ${
+                  isCompleted ? 'bg-emerald-500/10 text-emerald-400' :
+                  isCurrent ? 'bg-cyan-500/10 text-cyan-400' :
+                  'bg-transparent text-slate-500'
+                }`}
+              >
+                {/* Status indicator */}
+                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                  {isCompleted ? (
+                    <div className="w-4 h-4 rounded-full bg-emerald-500/30 border border-emerald-400/50 flex items-center justify-center">
+                      <svg className="w-2.5 h-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  ) : isCurrent ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-cyan-400/50 border-t-cyan-400 animate-spin" />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full border border-slate-600 bg-slate-800/50" />
+                  )}
+                </div>
+                
+                {/* Icon */}
+                <span className="flex-shrink-0">{analysisStep.icon}</span>
+                
+                {/* Label */}
+                <span className={`truncate ${isCompleted ? 'font-medium' : ''}`}>
+                  {displayLabel}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
 
         {/* Completion hint */}
         {step === 'complete' && (
-          <p className="text-xs text-emerald-400/80 mt-2">Click the stats panel to view results →</p>
+          <p className="text-xs text-emerald-400/80 mt-3 pt-2 border-t border-white/5">
+            ✨ Click anywhere to view detailed results →
+          </p>
         )}
         
         {/* Error hint */}
         {step === 'error' && (
-          <p className="text-xs text-rose-400/80 mt-2">Please try again with a different location.</p>
+          <p className="text-xs text-rose-400/80 mt-3 pt-2 border-t border-white/5">
+            ⚠️ Please try again with a different location.
+          </p>
         )}
       </div>
     </div>

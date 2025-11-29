@@ -146,9 +146,10 @@ const LANDMARK_ICON_MAP = {
 };
 
 // Custom marker icons with SVG - supports dynamic size/opacity for contextual visibility
-const createCustomIcon = (color, iconPath, size = 32, opacity = 1, zIndex = 500) => {
-  const iconSize = size;
-  const innerIconSize = Math.round(size * 0.5); // Icon image size proportional to marker
+// Size scaling is handled via CSS classes based on zoom level
+const createCustomIcon = (color, iconPath, baseSize = 32, opacity = 1, zIndex = 500) => {
+  const iconSize = baseSize;
+  const innerIconSize = Math.round(baseSize * 0.5);
 
   return L.divIcon({
     className: 'custom-marker',
@@ -164,7 +165,6 @@ const createCustomIcon = (color, iconPath, size = 32, opacity = 1, zIndex = 500)
         justify-content: center;
         box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         opacity: ${opacity};
-        transition: opacity 0.3s ease, transform 0.3s ease;
         z-index: ${zIndex};
         position: relative;
       ">
@@ -183,7 +183,7 @@ const createCustomIcon = (color, iconPath, size = 32, opacity = 1, zIndex = 500)
   });
 };
 
-// Cache for landmark icons - keyed by category + style params
+// Cache for landmark icons - keyed by category + business type
 const landmarkIconCache = {};
 
 // Get landmark icon based on category with contextual visibility styling
@@ -202,62 +202,176 @@ const getLandmarkIcon = (category, businessType = null) => {
   // Get contextual visibility styling
   const style = getMarkerStyle(bt, normalizedCategory);
 
-  // Create icon with contextual styling
+  // Create icon with contextual styling (CSS handles zoom scaling)
   const icon = createCustomIcon('#06b6d4', iconPath, style.size, style.opacity, style.zIndex);
   landmarkIconCache[cacheKey] = icon;
   return icon;
 };
 
-// Numbered recommended spot icon
+// Numbered recommended spot icon - HIGHLY DISTINCTIVE design
+// These are the "best places to start business" markers - must stand out!
 const createSpotIcon = (rank, color) => {
+  // Much larger than other markers
+  const size = 52;
+  const fontSize = 18;
+  
+  // Bright, high-contrast colors for each rank
+  const spotColors = {
+    1: { bg: '#FFD700', text: '#000', glow: 'rgba(255, 215, 0, 0.8)', border: '#FFA500' },  // Gold
+    2: { bg: '#C0C0C0', text: '#000', glow: 'rgba(192, 192, 192, 0.8)', border: '#A0A0A0' }, // Silver
+    3: { bg: '#CD7F32', text: '#fff', glow: 'rgba(205, 127, 50, 0.8)', border: '#8B4513' },  // Bronze
+    4: { bg: '#9333EA', text: '#fff', glow: 'rgba(147, 51, 234, 0.8)', border: '#7C3AED' },  // Purple
+    5: { bg: '#EC4899', text: '#fff', glow: 'rgba(236, 72, 153, 0.8)', border: '#DB2777' },  // Pink
+  };
+  
+  const colors = spotColors[rank] || spotColors[5];
+  
   return L.divIcon({
-    className: 'custom-marker recommended-spot',
+    className: 'recommended-spot-marker',
     html: `
-      <div style="
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, ${color}, ${color}dd);
-        border: 3px solid white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        font-weight: bold;
-        color: white;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5), 0 0 20px ${color}40;
-        animation: pulse-glow 2s ease-in-out infinite;
+      <div class="spot-container" style="
+        position: relative;
+        width: ${size}px;
+        height: ${size + 15}px;
       ">
-        ${rank}
+        <!-- Pin pointer at bottom -->
+        <div style="
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0;
+          height: 0;
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-top: 15px solid ${colors.border};
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        "></div>
+        
+        <!-- Main circle with star icon -->
+        <div style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: ${size}px;
+          height: ${size}px;
+          background: linear-gradient(145deg, ${colors.bg}, ${colors.border});
+          border: 4px solid white;
+          border-radius: 50%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 
+            0 4px 15px ${colors.glow},
+            0 0 30px ${colors.glow},
+            inset 0 2px 4px rgba(255,255,255,0.4);
+          animation: spot-pulse 1.5s ease-in-out infinite;
+        ">
+          <!-- Star icon -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="${colors.text}" style="margin-bottom: 1px;">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <!-- Rank number -->
+          <span style="
+            font-size: ${fontSize}px;
+            font-weight: 900;
+            color: ${colors.text};
+            text-shadow: ${colors.text === '#000' ? 'none' : '0 1px 2px rgba(0,0,0,0.3)'};
+            line-height: 1;
+          ">${rank}</span>
+        </div>
+        
+        <!-- Outer ring animation -->
+        <div style="
+          position: absolute;
+          top: -6px;
+          left: -6px;
+          width: ${size + 12}px;
+          height: ${size + 12}px;
+          border: 2px solid ${colors.bg};
+          border-radius: 50%;
+          opacity: 0.6;
+          animation: ring-pulse 1.5s ease-in-out infinite;
+        "></div>
       </div>
+      
       <style>
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5), 0 0 20px ${color}40; }
-          50% { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.8), 0 0 30px ${color}60; }
+        @keyframes spot-pulse {
+          0%, 100% { 
+            transform: scale(1);
+            box-shadow: 0 4px 15px ${colors.glow}, 0 0 30px ${colors.glow}, inset 0 2px 4px rgba(255,255,255,0.4);
+          }
+          50% { 
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px ${colors.glow}, 0 0 50px ${colors.glow}, inset 0 2px 4px rgba(255,255,255,0.4);
+          }
+        }
+        @keyframes ring-pulse {
+          0%, 100% { 
+            transform: scale(1);
+            opacity: 0.6;
+          }
+          50% { 
+            transform: scale(1.15);
+            opacity: 0.2;
+          }
         }
       </style>
     `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-    popupAnchor: [0, -18],
+    iconSize: [size, size + 15],
+    iconAnchor: [size / 2, size + 15],
+    popupAnchor: [0, -size - 10],
   });
 };
 
-const selectedIcon = createCustomIcon('#10b981', '/icons/location-pin.svg');
-const competitorIcon = createCustomIcon('#f43f5e', '/icons/store.svg');
+// Create competitor icon (CSS handles zoom scaling)
+const createCompetitorIcon = () => {
+  return createCustomIcon('#f43f5e', '/icons/store.svg', 32, 1, 500);
+};
+
 // landmarkIcon is now dynamically created per category using getLandmarkIcon()
 
-// Component to handle map view changes
-function MapController({ center, zoom }) {
+// Component to handle map view changes - only flies to location ONCE when center changes
+function MapController({ center, zoom, hasFlown, setHasFlown }) {
   const map = useMap();
 
   useEffect(() => {
-    if (center) {
+    // Only fly to location once when a NEW location is selected
+    if (center && !hasFlown) {
       map.flyTo(center, zoom || 15, {
         duration: 1.5,
       });
+      setHasFlown(true);
     }
-  }, [center, zoom, map]);
+  }, [center, zoom, map, hasFlown, setHasFlown]);
+
+  return null;
+}
+
+// Component to track zoom level and update markers via CSS class
+function ZoomTracker({ onZoomChange }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const handleZoom = () => {
+      const zoom = Math.round(map.getZoom());
+      onZoomChange(zoom);
+      
+      // Update CSS class on map container for zoom-based styling
+      const container = map.getContainer();
+      // Remove old zoom classes
+      container.className = container.className.replace(/map-zoom-\d+/g, '').trim();
+      // Add new zoom class
+      container.classList.add(`map-zoom-${zoom}`);
+    };
+
+    // Set initial zoom
+    handleZoom();
+
+    map.on('zoomend', handleZoom);
+    return () => map.off('zoomend', handleZoom);
+  }, [map, onZoomChange]);
 
   return null;
 }
@@ -303,13 +417,27 @@ export default function MapView({
   analysis = null, // For stats panel
   onOpenPanel, // Callback to open analysis panel
   isLoading = false, // Loading state
+  isDarkMode = true, // Dark/Light mode toggle
 }) {
   const mapRef = useRef(null);
   const [heatmapEnabled, setHeatmapEnabled] = useState(true);
   const [showSpots, setShowSpots] = useState(true);
   const [contextualVisibility, setContextualVisibility] = useState(true); // Toggle for contextual visibility
+  const [currentZoom, setCurrentZoom] = useState(zoom); // Track current zoom level for dynamic marker sizing
+  const [hasFlown, setHasFlown] = useState(false); // Track if we've flown to location (prevent repeated flying)
+  const [lastLocationKey, setLastLocationKey] = useState(null); // Track which location we flew to
+
+  // Reset hasFlown when location changes to a NEW location
+  useEffect(() => {
+    const locationKey = selectedLocation ? `${selectedLocation.lat}-${selectedLocation.lng}` : null;
+    if (locationKey !== lastLocationKey) {
+      setHasFlown(false);
+      setLastLocationKey(locationKey);
+    }
+  }, [selectedLocation, lastLocationKey]);
 
   // Clear landmark icon cache when business type changes (for contextual visibility)
+  // Note: Zoom scaling is now handled via CSS, so no need to clear on zoom change
   useEffect(() => {
     // Clear cache to force re-creation of icons with new business type styling
     Object.keys(landmarkIconCache).forEach(key => delete landmarkIconCache[key]);
@@ -355,9 +483,13 @@ export default function MapView({
         zoomControl={true}
         attributionControl={false}
       >
-        {/* Dark tile layer */}
+        {/* Tile layer - switches between dark and light mode */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          key={isDarkMode ? 'dark' : 'light'}
+          url={isDarkMode 
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          }
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
         />
 
@@ -367,8 +499,11 @@ export default function MapView({
             ? [selectedLocation.lat, selectedLocation.lng]
             : null}
           zoom={15}
+          hasFlown={hasFlown}
+          setHasFlown={setHasFlown}
         />
         <MapClickHandler onClick={onMapClick} />
+        <ZoomTracker onZoomChange={setCurrentZoom} />
 
         {/* Circular area selection - covers the entire selected area */}
         {selectedLocation && selectedLocation.lat != null && selectedLocation.lng != null && (
@@ -390,7 +525,7 @@ export default function MapView({
           />
         )}
 
-        {/* Recommended Spot markers */}
+        {/* Recommended Spot markers - rendered LAST to be on top */}
         {showSpots && spotList
           .filter(s => s.lat != null && s.lng != null)
           .map((spot) => (
@@ -398,15 +533,22 @@ export default function MapView({
               key={`spot-${spot.rank}`}
               position={[spot.lat, spot.lng]}
               icon={createSpotIcon(spot.rank, getSpotColor(spot.rank))}
+              zIndexOffset={1000 + (6 - spot.rank) * 100}
               eventHandlers={{
                 click: () => onSpotClick && onSpotClick(spot)
               }}
             >
               <Popup>
-                <div className="text-slate-900 min-w-[180px]">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-lg" style={{ color: getSpotColor(spot.rank) }}>#{spot.rank}</span>
-                    <span className="font-semibold">Recommended Spot</span>
+                <div className="text-slate-900 min-w-[200px]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold" 
+                         style={{ background: spot.rank === 1 ? '#FFD700' : spot.rank === 2 ? '#C0C0C0' : spot.rank === 3 ? '#CD7F32' : spot.rank === 4 ? '#9333EA' : '#EC4899' }}>
+                      {spot.rank}
+                    </div>
+                    <div>
+                      <span className="font-bold text-base">Best Location #{spot.rank}</span>
+                      <p className="text-xs text-slate-500">Recommended for your business</p>
+                    </div>
                   </div>
                   <p className="text-xs font-mono text-slate-500 mb-2">
                     {spot.lat.toFixed(6)}, {spot.lng.toFixed(6)}
@@ -443,7 +585,7 @@ export default function MapView({
             <Marker
               key={`competitor-${index}`}
               position={[competitor.lat, competitor.lng]}
-              icon={competitorIcon}
+              icon={createCompetitorIcon()}
             >
               <Popup>
                 <div className="text-slate-900">
@@ -467,9 +609,9 @@ export default function MapView({
             const relevance = getRelevanceScore(businessType, landmark.category);
             return (
               <Marker
-                key={`landmark-${index}`}
-                position={[landmark.lat, landmark.lng]}
-                icon={getLandmarkIcon(landmark.category, contextualVisibility ? businessType : null)}
+              key={`landmark-${index}`}
+              position={[landmark.lat, landmark.lng]}
+              icon={getLandmarkIcon(landmark.category, contextualVisibility ? businessType : null)}
                 zIndexOffset={contextualVisibility ? Math.round(relevance * 800) : 0}
               >
                 <Popup>
@@ -515,32 +657,32 @@ export default function MapView({
 
       {/* Unified Bottom-Right Controls - Single Column Stack */}
       {selectedLocation && !isLoading && (
-        <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2 max-w-[220px]">
+        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-3 w-[300px]">
           
           {/* Row 1: Quick Stats Panel */}
           {analysis && onOpenPanel && (
             <button
               onClick={onOpenPanel}
-              className="w-full backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-2.5 hover:bg-slate-800/90 transition-all cursor-pointer group shadow-lg"
+              className="w-full backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-4 hover:bg-slate-800/90 transition-all cursor-pointer group shadow-xl"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
                 <div className="text-center">
-                  <p className="text-xl font-bold text-emerald-400">
+                  <p className="text-3xl font-bold text-emerald-400">
                     {analysis.recommended_spots?.length || 0}
                   </p>
-                  <p className="text-[9px] text-slate-500">Spots</p>
+                  <p className="text-xs text-slate-500">Spots</p>
                 </div>
-                <div className="w-px h-7 bg-white/10" />
-                <div className="text-left text-[10px]">
+                <div className="w-px h-10 bg-white/10" />
+                <div className="text-left text-sm">
                   <p className="text-slate-300">
-                    <span className="text-rose-400 font-medium">{analysis.competitors?.count || 0}</span> competitors
+                    <span className="text-rose-400 font-semibold">{analysis.competitors?.count || 0}</span> competitors
                   </p>
                   <p className="text-slate-300">
-                    <span className="text-cyan-400 font-medium">{analysis.landmarks?.total || 0}</span> landmarks
+                    <span className="text-cyan-400 font-semibold">{analysis.landmarks?.total || 0}</span> landmarks
                   </p>
                 </div>
                 <div className="text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all ml-auto">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -550,45 +692,45 @@ export default function MapView({
 
           {/* Row 2: Landmarks & Competitors Toggle */}
           {setShowLandmarks && setShowCompetitors && (
-            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-1.5 flex gap-1 shadow-lg">
+            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-2 flex gap-2 shadow-xl">
               <button
                 onClick={() => setShowLandmarks(!showLandmarks)}
-                className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showLandmarks
+                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${showLandmarks
                   ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/25'
                   : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                   }`}
               >
-                <img src="/icons/building.svg" alt="" className="w-3 h-3"
+                <img src="/icons/building.svg" alt="" className="w-4 h-4"
                   style={{ filter: showLandmarks ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
                 />
-                <span>{showLandmarks ? 'Landmarks' : 'Landmarks'}</span>
+                <span>Landmarks</span>
               </button>
               <button
                 onClick={() => setShowCompetitors(!showCompetitors)}
-                className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showCompetitors
+                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${showCompetitors
                   ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25'
                   : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                   }`}
               >
-                <img src="/icons/store.svg" alt="" className="w-3 h-3"
+                <img src="/icons/store.svg" alt="" className="w-4 h-4"
                   style={{ filter: showCompetitors ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
                 />
-                <span>{showCompetitors ? 'Competitors' : 'Competitors'}</span>
+                <span>Competitors</span>
               </button>
             </div>
           )}
 
           {/* Row 3: Heatmap, Spots, Smart View Toggle */}
           {competitorList.length > 0 && (
-            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-1.5 flex flex-wrap gap-1 shadow-lg">
+            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-2 flex flex-wrap gap-2 shadow-xl">
               <button
                 onClick={() => setHeatmapEnabled(!heatmapEnabled)}
-                className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${heatmapEnabled
+                className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${heatmapEnabled
                     ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
                     : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                   }`}
               >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
                 <span>Heatmap</span>
@@ -596,25 +738,25 @@ export default function MapView({
               {spotList.length > 0 && (
                 <button
                   onClick={() => setShowSpots(!showSpots)}
-                  className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showSpots
+                  className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${showSpots
                       ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
                       : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                     }`}
                 >
-                  <img src="/icons/star.svg" alt="" className="w-3 h-3" style={{ filter: showSpots ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
+                  <img src="/icons/star.svg" alt="" className="w-4 h-4" style={{ filter: showSpots ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
                   <span>{spotList.length} Spots</span>
                 </button>
               )}
               {businessType && landmarkList.length > 0 && (
                 <button
                   onClick={() => setContextualVisibility(!contextualVisibility)}
-                  className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${contextualVisibility
+                  className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${contextualVisibility
                       ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25'
                       : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                     }`}
                   title="Adjusts landmark visibility based on relevance to your business type"
                 >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
@@ -626,42 +768,42 @@ export default function MapView({
 
           {/* Row 4: Heatmap Legend */}
           {heatmapEnabled && competitorList.length > 0 && (
-            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-2.5 shadow-lg">
-              <p className="text-[9px] font-medium text-slate-300 mb-1.5">Competition Density</p>
-              <div className="flex items-center gap-0.5">
-                <div className="w-3 h-3 rounded" style={{ background: 'rgb(34, 197, 94)' }} />
-                <div className="w-3 h-3 rounded" style={{ background: 'rgb(134, 197, 94)' }} />
-                <div className="w-3 h-3 rounded" style={{ background: 'rgb(255, 200, 0)' }} />
-                <div className="w-3 h-3 rounded" style={{ background: 'rgb(255, 150, 0)' }} />
-                <div className="w-3 h-3 rounded" style={{ background: 'rgb(255, 80, 50)' }} />
+            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-4 shadow-xl">
+              <p className="text-sm font-medium text-slate-300 mb-2">Competition Density</p>
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(34, 197, 94)' }} />
+                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(134, 197, 94)' }} />
+                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(255, 200, 0)' }} />
+                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(255, 150, 0)' }} />
+                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(255, 80, 50)' }} />
               </div>
-              <div className="flex justify-between text-[8px] text-slate-500 mt-1">
-                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Low</span>
-                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>High</span>
+              <div className="flex justify-between text-xs text-slate-500 mt-2">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Low</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500"></span>High</span>
               </div>
             </div>
           )}
 
           {/* Row 5: Smart View Legend */}
           {contextualVisibility && businessType && landmarkList.length > 0 && (
-            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-xl p-2.5 shadow-lg">
-              <p className="text-[9px] font-medium text-slate-300 mb-1.5 flex items-center gap-1">
-                <svg className="w-3 h-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-4 shadow-xl">
+              <p className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
                 Smart: {businessType}
               </p>
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-1.5 text-[8px]">
-                  <div className="w-4 h-4 rounded-full bg-cyan-500 opacity-100 flex items-center justify-center">
-                    <span className="text-white text-[7px]">★</span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="w-5 h-5 rounded-full bg-cyan-500 opacity-100 flex items-center justify-center">
+                    <span className="text-white text-xs">★</span>
                   </div>
                   <span className="text-slate-400">High relevance</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[8px]">
-                  <div className="w-3 h-3 rounded-full bg-cyan-500 opacity-50 flex items-center justify-center">
-                    <span className="text-white text-[6px]">•</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="w-4 h-4 rounded-full bg-cyan-500 opacity-50 flex items-center justify-center">
+                    <span className="text-white text-[8px]">•</span>
                   </div>
                   <span className="text-slate-400">Low relevance</span>
                 </div>

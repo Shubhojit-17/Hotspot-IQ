@@ -4,8 +4,55 @@ Finds optimal business locations based on competitor density and landmark proxim
 """
 
 import math
-from typing import Dict, List, Tuple
+import requests
+from typing import Dict, List, Tuple, Optional
 from config import LANDMARK_WEIGHTS
+
+# Overpass API endpoints
+OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter"
+]
+
+
+def _is_near_road(lat: float, lng: float, max_distance: float = 300) -> Tuple[bool, Optional[float]]:
+    """
+    Check if a point is near a road using Overpass API.
+    
+    Args:
+        lat: Latitude
+        lng: Longitude
+        max_distance: Maximum distance to road in meters
+        
+    Returns:
+        Tuple of (is_near_road, approximate_distance)
+    """
+    try:
+        # Query for roads - use 'out body' to get actual results
+        query = f"""
+        [out:json][timeout:5];
+        (
+            way["highway"~"primary|secondary|tertiary|residential|unclassified|service"](around:{max_distance},{lat},{lng});
+        );
+        out body;
+        """
+        
+        for endpoint in OVERPASS_ENDPOINTS[:1]:  # Just use first endpoint for speed
+            try:
+                response = requests.post(endpoint, data={'data': query}, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    elements = data.get('elements', [])
+                    road_count = len(elements)
+                    if road_count > 0:
+                        return True, max_distance / 2  # Approximate distance
+                    return False, None
+            except Exception as e:
+                continue
+        # If API fails, assume NOT near road (conservative)
+        return False, None
+    except:
+        return False, None
 
 
 def haversine_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -123,10 +170,12 @@ def find_recommended_spots(
     radius: float,
     competitors: List[Dict],
     landmarks: List[Dict],
-    max_spots: int = 5
+    max_spots: int = 5,
+    road_proximity: float = 300  # Maximum distance from road in meters
 ) -> List[Dict]:
     """
     Find the best spots for setting up a business.
+    Only recommends spots that are near roadways (within road_proximity meters).
     
     Returns top spots with explanations.
     """
@@ -140,13 +189,22 @@ def find_recommended_spots(
     if not grid_scores:
         return []
     
-    # Select top spots that are not too close to each other
+    # Select top spots that are not too close to each other AND near roads
     recommended = []
     min_spacing = 300  # Minimum distance between recommended spots
+    checked_for_roads = 0
+    skipped_no_road = 0
+    max_road_checks = 50  # Limit API calls (increased to find more valid spots)
+    
+    print(f"   🔍 Filtering spots near roadways (within {road_proximity}m)...")
     
     for cell in grid_scores:
         if len(recommended) >= max_spots:
             break
+        
+        if checked_for_roads >= max_road_checks:
+            print(f"   ⚠️ Reached max road checks ({max_road_checks}), checked {checked_for_roads}, skipped {skipped_no_road} (no road)")
+            break  # Stop completely if we hit max checks
             
         # Check if this spot is far enough from already recommended spots
         too_close = False
@@ -161,6 +219,18 @@ def find_recommended_spots(
         
         if too_close:
             continue
+        
+        # Check if spot is near a road - ALWAYS check, no fallback
+        near_road, _ = _is_near_road(cell['lat'], cell['lng'], road_proximity)
+        checked_for_roads += 1
+        
+        if not near_road:
+            # Skip spots not near roads
+            skipped_no_road += 1
+            print(f"      ❌ Skipped ({cell['lat']:.5f}, {cell['lng']:.5f}) - no road within {road_proximity}m")
+            continue
+        
+        print(f"      ✅ Found spot near road: ({cell['lat']:.5f}, {cell['lng']:.5f})")
         
         # Generate reason for recommendation
         reasons = []
@@ -183,6 +253,9 @@ def find_recommended_spots(
         if cell['landmark_names']:
             top_landmarks = cell['landmark_names'][:3]
             reasons.append(f"Near: {', '.join(top_landmarks)}")
+        
+        # Add road accessibility note
+        reasons.append("Good road accessibility")
         
         # Determine rating based on score
         if cell['opportunity_score'] >= 50:

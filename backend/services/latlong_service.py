@@ -315,7 +315,7 @@ class LatLongService:
             lng: Longitude
             
         Returns:
-            Address details including formatted address and components
+            Address details including formatted address, area_name, and components
         """
         params = {
             'latitude': lat,
@@ -327,6 +327,7 @@ class LatLongService:
         if not result.get('success'):
             return {
                 'formatted_address': f'{lat}, {lng}',
+                'area_name': f'{lat:.4f}, {lng:.4f}',
                 'locality': '',
                 'city': '',
                 'pincode': '',
@@ -334,14 +335,306 @@ class LatLongService:
             }
         
         data = result.get('data', {})
+        full_address = data.get('address', f'{lat}, {lng}')
+        
+        # Extract area name from the address
+        # Typical format: "Door No, Street, Area, City, State, Pincode"
+        area_name = self._extract_area_name(full_address)
+        
         return {
-            'formatted_address': data.get('address', f'{lat}, {lng}'),
+            'formatted_address': full_address,
+            'area_name': area_name,
             'locality': '',  # Not directly provided
             'city': '',  # Parse from address if needed
             'pincode': data.get('pincode', ''),
             'state': '',  # Parse from address if needed
             'landmark': data.get('landmark', '')
         }
+    
+    def _is_valid_locality_name(self, name: str) -> bool:
+        """
+        Check if a name looks like a valid locality/area name (not a road, landmark, or POI).
+        
+        Args:
+            name: The name to check
+            
+        Returns:
+            True if it looks like a valid locality name
+        """
+        if not name or len(name) < 3:
+            return False
+        
+        name_lower = name.lower()
+        
+        # Skip names that look like roads/streets
+        road_keywords = ['road', 'street', 'main', 'cross', 'lane', 'highway', 'hwy', 
+                        'marg', 'path', 'avenue', 'ave', 'drive', 'way',
+                        '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th']
+        if any(kw in name_lower for kw in road_keywords):
+            return False
+        
+        # Skip names that look like POIs/landmarks (start with "Near")
+        if name_lower.startswith('near '):
+            return False
+        
+        # Skip names with technical codes (like H207, SV-3B, etc.)
+        if any(c.isdigit() for c in name[:3]):  # Starts with digits/codes
+            return False
+        
+        # Skip very short names that are likely codes
+        if len(name) < 4 and any(c.isdigit() for c in name):
+            return False
+        
+        # Skip pipeline, industrial terms
+        industrial_keywords = ['pipeline', 'gail', 'ongc', 'ntpc', 'industrial', 'factory']
+        if any(kw in name_lower for kw in industrial_keywords):
+            return False
+        
+        return True
+    
+    def _get_nominatim_area(self, lat: float, lng: float, zoom: int = 14) -> Dict:
+        """
+        Get area/locality name using Nominatim (OpenStreetMap) reverse geocoding.
+        
+        Nominatim zoom levels for India:
+        - zoom=10: city (Bengaluru)
+        - zoom=13: suburb/village (Vidyaranyapura)
+        - zoom=14: neighbourhood (more specific)
+        
+        Args:
+            lat: Latitude
+            lng: Longitude
+            zoom: Zoom level (10=city, 13=suburb, 14=neighbourhood)
+            
+        Returns:
+            Dict with structured address components from OSM
+        """
+        try:
+            url = "https://nominatim.openstreetmap.org/reverse"
+            params = {
+                'lat': lat,
+                'lon': lng,
+                'format': 'jsonv2',
+                'addressdetails': 1,
+                'zoom': zoom,
+                'accept-language': 'en'
+            }
+            headers = {
+                'User-Agent': 'HotspotIQ/1.0 (contact@hotspotiq.com)'  # Required by Nominatim
+            }
+            
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            address = data.get('address', {})
+            
+            # Priority order for area name in Indian context:
+            # suburb > neighbourhood > city_district > county > city > town > village
+            area_name = (
+                address.get('suburb') or  # e.g., "Vidyaranyapura"
+                address.get('neighbourhood') or  # e.g., "Sahakara Nagar"
+                address.get('city_district') or  # e.g., "Bengaluru North"
+                address.get('village') or
+                address.get('town') or
+                address.get('hamlet') or
+                ''
+            )
+            
+            city = (
+                address.get('city') or 
+                address.get('state_district') or  # e.g., "Bengaluru Urban"
+                address.get('county') or
+                ''
+            )
+            
+            state = address.get('state', '')
+            
+            return {
+                'area_name': area_name,
+                'city': city,
+                'state': state,
+                'suburb': address.get('suburb', ''),
+                'neighbourhood': address.get('neighbourhood', ''),
+                'city_district': address.get('city_district', ''),
+                'display_name': data.get('display_name', ''),
+                'raw_address': address
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Nominatim API Error: {str(e)}")
+            return {}
+        except Exception as e:
+            print(f"Error in Nominatim lookup: {str(e)}")
+            return {}
+    
+    def reverse_geocode_area(self, center_lat: float, center_lng: float, radius: int) -> Dict:
+        """
+        Get area name for a location using Nominatim (OpenStreetMap).
+        
+        Uses OSM's structured address data which provides clean suburb/neighbourhood names.
+        Makes a single fast API call to get the area name.
+        
+        Args:
+            center_lat: Center latitude
+            center_lng: Center longitude
+            radius: Radius in meters (used for context, not for multi-sampling)
+            
+        Returns:
+            Address details with area_name for the location
+        """
+        try:
+            # Single Nominatim call for the center point
+            # This is fast and doesn't hit rate limits
+            nominatim_result = self._get_nominatim_area(center_lat, center_lng, zoom=14)
+            
+            if nominatim_result and nominatim_result.get('area_name'):
+                suburb = nominatim_result.get('suburb', '')
+                neighbourhood = nominatim_result.get('neighbourhood', '')
+                city_district = nominatim_result.get('city_district', '')
+                city = nominatim_result.get('city', '')
+                state = nominatim_result.get('state', '')
+                
+                # Priority: suburb > neighbourhood > city_district
+                primary_area = suburb or neighbourhood or city_district or ''
+                
+                # Build the display name
+                if primary_area and city:
+                    # Clean up city name (remove "Urban" suffix)
+                    display_city = city.replace(' Urban', '').replace(' Rural', '')
+                    area_name = f"{primary_area}, {display_city}"
+                elif primary_area:
+                    area_name = primary_area
+                elif city:
+                    area_name = city
+                else:
+                    area_name = nominatim_result.get('area_name', '')
+                
+                return {
+                    'formatted_address': nominatim_result.get('display_name', ''),
+                    'area_name': area_name,
+                    'locality': primary_area,
+                    'city': city,
+                    'state': state,
+                    'pincode': '',
+                    'landmark': '',
+                    'areas_in_radius': [primary_area] if primary_area else []
+                }
+        
+        except Exception as e:
+            print(f"Nominatim reverse geocode error: {e}")
+        
+        # Fallback to LatLong API if Nominatim fails
+        print("Nominatim failed, falling back to LatLong API")
+        return self.reverse_geocode(center_lat, center_lng)
+    
+    def _extract_area_name(self, full_address: str) -> str:
+        """
+        Extract the major area/locality name from a full address.
+        
+        Strategy:
+        1. Split address by comma
+        2. Skip door numbers, road/street names, building names
+        3. Find the main locality/area name
+        4. Optionally include city name
+        
+        Args:
+            full_address: Full address string
+            
+        Returns:
+            Area name suitable for display (e.g., "Vidyaranyapura, Bengaluru")
+        """
+        if not full_address:
+            return ''
+        
+        parts = [p.strip() for p in full_address.split(',')]
+        
+        # Keywords that indicate a road/street (not the main area)
+        road_keywords = ['road', 'street', 'main', 'cross', 'lane', 'avenue', 'ave', 
+                        'marg', 'path', 'way', 'drive', 'highway', 'hwy', 'nagar road',
+                        '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th',
+                        '11th', '12th', '13th', '14th', '15th', 'first', 'second', 'third']
+        
+        # Keywords that indicate state/country (skip these)
+        state_keywords = ['karnataka', 'maharashtra', 'tamil nadu', 'delhi', 'telangana', 
+                         'andhra pradesh', 'kerala', 'gujarat', 'rajasthan', 'west bengal',
+                         'uttar pradesh', 'madhya pradesh', 'bihar', 'punjab', 'haryana',
+                         'india', 'odisha', 'orissa', 'assam', 'goa']
+        
+        # Keywords to skip (buildings, floors, etc.)
+        skip_keywords = ['floor', 'block', 'wing', 'tower', 'flat', 'house', 'no.', 'no ', 
+                        'building', 'complex', 'apartment', 'apt', 'plot', 'door', 'site']
+        
+        # Major city names (these come after locality)
+        city_keywords = ['bengaluru', 'bangalore', 'mumbai', 'delhi', 'chennai', 'hyderabad',
+                        'kolkata', 'pune', 'ahmedabad', 'jaipur', 'lucknow', 'kanpur',
+                        'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna',
+                        'vadodara', 'ghaziabad', 'ludhiana', 'agra', 'nashik', 'faridabad',
+                        'meerut', 'rajkot', 'varanasi', 'srinagar', 'aurangabad', 'dhanbad',
+                        'amritsar', 'navi mumbai', 'allahabad', 'ranchi', 'howrah', 'coimbatore',
+                        'jabalpur', 'gwalior', 'vijayawada', 'jodhpur', 'madurai', 'raipur',
+                        'kota', 'chandigarh', 'guwahati', 'solapur', 'mysore', 'mysuru']
+        
+        area_name = None
+        city_name = None
+        
+        for part in parts:
+            part_lower = part.lower().strip()
+            
+            # Skip empty or very short parts
+            if not part or len(part) < 3:
+                continue
+            
+            # Skip parts that are just numbers (door numbers, pincodes)
+            if part.replace(' ', '').replace('-', '').isdigit():
+                continue
+            
+            # Skip 6-digit pincodes
+            clean_part = part.replace(' ', '')
+            if len(clean_part) == 6 and clean_part.isdigit():
+                continue
+            
+            # Skip parts starting with numbers (door numbers like "123" or "6th")
+            first_word = part.split()[0] if part.split() else ''
+            if first_word.replace('-', '').replace('/', '').isdigit():
+                continue
+            
+            # Skip building/floor keywords
+            if any(kw in part_lower for kw in skip_keywords):
+                continue
+            
+            # Skip state/country names
+            if any(state in part_lower for state in state_keywords):
+                continue
+            
+            # Check if this is a city name
+            if any(city in part_lower for city in city_keywords):
+                city_name = part
+                continue
+            
+            # Skip road/street names - we want the locality, not the road
+            if any(kw in part_lower for kw in road_keywords):
+                continue
+            
+            # This should be the area/locality name
+            if area_name is None:
+                area_name = part
+        
+        # Build the result
+        if area_name:
+            if city_name:
+                return f"{area_name}, {city_name}"
+            return area_name
+        
+        # Fallback: if no area found, try to get something meaningful
+        for part in parts:
+            part_lower = part.lower().strip()
+            if part and len(part) > 3:
+                if not any(state in part_lower for state in state_keywords):
+                    if not part.replace(' ', '').replace('-', '').isdigit():
+                        return part
+        
+        return full_address.split(',')[0] if full_address else ''
     
     def get_poi(self, lat: float, lng: float, category: str, radius: int = 1000) -> Dict:
         """

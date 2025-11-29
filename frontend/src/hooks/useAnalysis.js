@@ -91,22 +91,22 @@ export default function useAnalysis() {
       const isochroneRadius = radius ? (radius / 1000) : (isMajorArea ? 2.5 : 1.5);
 
       // Step 1: Initialize & Validate Location
-      updateStatus('validation', '🛡️ Validating location...', 10);
-      await new Promise(r => setTimeout(r, 200)); // Brief delay for UI feedback
+      updateStatus('validation', 'Checking location validity...', 10, '🛡️ Location validated');
+      await new Promise(r => setTimeout(r, 300)); // Brief delay for UI feedback
 
       // Step 2: Fetch isochrone (area boundary)
-      updateStatus('boundary', '🗺️ Drawing area boundary...', 20);
+      updateStatus('boundary', 'Drawing search boundary...', 20);
       let isochroneData = null;
       try {
         isochroneData = await getIsochrone(location.lat, location.lng, isochroneRadius);
-        updateStatus('boundary', '✅ Area boundary ready', 25, '🗺️ Area boundary loaded');
+        updateStatus('boundary', 'Area boundary ready', 25, '🗺️ Area boundary loaded');
       } catch (err) {
         console.warn('Isochrone fetch failed:', err);
-        updateStatus('boundary', '⚠️ Using circular boundary', 25, '⚠️ Using default circular area');
+        updateStatus('boundary', 'Using circular boundary', 25, '🗺️ Using default circular area');
       }
 
       // Step 3: Run main analysis (includes validation + competitors + landmarks)
-      updateStatus('analysis', '🔍 Analyzing location & searching for competitors...', 30);
+      updateStatus('analysis', 'Searching for businesses & landmarks...', 35);
 
       const analysisData = await analyzeLocation(
         location.lat,
@@ -119,32 +119,43 @@ export default function useAnalysis() {
 
       // Extract counts for status
       const competitorCount = analysisData.competitors?.count || 0;
+      const nearbyList = analysisData.competitors?.nearby || [];
       const landmarkCount = analysisData.landmarks?.total || 0;
+      const landmarkCategories = Object.keys(analysisData.landmarks?.by_category || {}).length;
 
-      updateStatus('competitors', `✅ Found ${competitorCount} competitors`, 60,
-        `🏪 ${competitorCount} ${businessType}s found in area`);
+      // Update with competitor results
+      updateStatus('competitors', `Found ${competitorCount} competitors`, 55,
+        `🏪 ${competitorCount} ${businessType}${competitorCount !== 1 ? 's' : ''} found nearby`);
+
+      await new Promise(r => setTimeout(r, 400));
+
+      // Update with landmark results  
+      updateStatus('landmarks', `Identified ${landmarkCount} landmarks`, 70,
+        `🏛️ ${landmarkCount} landmarks in ${landmarkCategories} categories`);
 
       await new Promise(r => setTimeout(r, 300));
 
-      updateStatus('landmarks', `✅ Found ${landmarkCount} landmarks`, 75,
-        `🏛️ ${landmarkCount} landmarks identified`);
-
       // Step 4: Get DIGIPIN (optional)
-      updateStatus('digipin', '📌 Getting location code...', 85);
+      updateStatus('digipin', 'Retrieving location code...', 80);
       let digipin = null;
       try {
         const digipinData = await getDigipin(location.lat, location.lng);
         digipin = digipinData?.digipin;
         if (digipin) {
-          updateStatus('digipin', '✅ DIGIPIN retrieved', 90, `📌 DIGIPIN: ${digipin}`);
+          updateStatus('digipin', 'DIGIPIN retrieved', 85, `📌 DIGIPIN: ${digipin.substring(0, 10)}...`);
+        } else {
+          updateStatus('digipin', 'DIGIPIN not available', 85, '📌 Location code retrieved');
         }
       } catch {
-        // DIGIPIN is optional, ignore errors
+        updateStatus('digipin', 'DIGIPIN skipped', 85, '📌 Location code skipped');
       }
+
+      await new Promise(r => setTimeout(r, 200));
 
       // Step 5: Find recommended spots
       const spotsCount = analysisData.recommended_spots?.length || 0;
-      updateStatus('spots', `🎯 Found ${spotsCount} optimal locations...`, 95);
+      updateStatus('spots', `Analyzing ${spotsCount} optimal locations...`, 95,
+        `🎯 ${spotsCount} recommended spot${spotsCount !== 1 ? 's' : ''} identified`);
       await new Promise(r => setTimeout(r, 200));
 
       // Log raw response for debugging
@@ -182,9 +193,9 @@ export default function useAnalysis() {
         landmarks: normalizedAnalysis.landmarks
       });
 
-      // Complete!
-      updateStatus('complete', '✅ Analysis complete!', 100,
-        `🎯 Found ${spotsCount} recommended locations`);
+      // Complete! - Show summary
+      const summaryMsg = `${competitorCount} competitors, ${landmarkCount} landmarks, ${spotsCount} spots`;
+      updateStatus('complete', summaryMsg, 100);
 
       setAnalysis(normalizedAnalysis);
       setIsochrone(isochroneData);

@@ -19,7 +19,7 @@ import { ChatBot } from './components/Chat';
 import { useAnalysis } from './hooks';
 
 // API
-import { geocodeLocation } from './services/api';
+import { geocodeLocation, reverseGeocode } from './services/api';
 
 // Toast notification component
 function Toast({ message, type = 'error', onClose }) {
@@ -70,6 +70,33 @@ function Toast({ message, type = 'error', onClose }) {
 }
 
 export default function App() {
+  // Theme state - default to dark mode
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage for saved preference, default to dark
+    const saved = localStorage.getItem('hotspotiq-theme');
+    return saved ? saved === 'dark' : true;
+  });
+
+  // Toggle theme and save preference
+  const toggleTheme = useCallback(() => {
+    setIsDarkMode(prev => {
+      const newMode = !prev;
+      localStorage.setItem('hotspotiq-theme', newMode ? 'dark' : 'light');
+      return newMode;
+    });
+  }, []);
+
+  // Apply theme class to document
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
   // Step 1: Business Type
   const [businessType, setBusinessType] = useState(null);
 
@@ -136,14 +163,63 @@ export default function App() {
     }
   }, []);
 
-  // Handle map click
-  const handleMapClick = useCallback((coords) => {
+  // Handle map click - reverse geocode to get address
+  const handleMapClick = useCallback(async (coords) => {
+    // Set immediately with coordinates for responsiveness
+    const tempName = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
     setSelectedLocation({
-      name: `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`,
+      name: tempName,
       lat: coords.lat,
       lng: coords.lng,
     });
-  }, []);
+
+    // Reverse geocode using the selected radius to get area name for the whole region
+    try {
+      // Use the current radius for area-based reverse geocoding
+      const result = await reverseGeocode(coords.lat, coords.lng, radius);
+      if (result) {
+        // Use area_name for display (cleaner, shows just the locality)
+        // Fall back to formatted_address if area_name is not available
+        const displayName = result.area_name || result.formatted_address || tempName;
+        setSelectedLocation({
+          name: displayName,
+          lat: coords.lat,
+          lng: coords.lng,
+          pincode: result.pincode,
+          landmark: result.landmark,
+          fullAddress: result.formatted_address, // Keep full address for reference
+          areasInRadius: result.areas_in_radius, // All areas found in the radius
+        });
+      }
+    } catch (error) {
+      console.error('Reverse geocode failed:', error);
+      // Keep the coordinate-based name if reverse geocode fails
+    }
+  }, [radius]);
+
+  // Update area name when radius changes (if we have a selected location)
+  useEffect(() => {
+    const updateAreaName = async () => {
+      if (!selectedLocation?.lat || !selectedLocation?.lng) return;
+      
+      try {
+        const result = await reverseGeocode(selectedLocation.lat, selectedLocation.lng, radius);
+        if (result?.area_name) {
+          setSelectedLocation(prev => ({
+            ...prev,
+            name: result.area_name,
+            areasInRadius: result.areas_in_radius,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to update area name for new radius:', error);
+      }
+    };
+    
+    // Debounce the update to avoid too many API calls while sliding
+    const timeoutId = setTimeout(updateAreaName, 500);
+    return () => clearTimeout(timeoutId);
+  }, [radius, selectedLocation?.lat, selectedLocation?.lng]);
 
   // Handle analyze button click
   const handleAnalyze = useCallback(async () => {
@@ -211,7 +287,7 @@ export default function App() {
       )}
 
       {/* Floating Header - Above everything */}
-      <Header />
+      <Header isDarkMode={isDarkMode} onToggleTheme={toggleTheme} />
 
       {/* Full-screen Map Layer */}
       <div className="absolute inset-0">
@@ -232,6 +308,7 @@ export default function App() {
           analysis={analysis}
           onOpenPanel={() => setIsPanelOpen(true)}
           isLoading={isLoading}
+          isDarkMode={isDarkMode}
         />
       </div>
 
@@ -258,18 +335,16 @@ export default function App() {
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-5 space-y-5">
-            {/* Step 1: Business Type - Icon Grid */}
+            {/* Step 1: Location Search - Spotlight Style */}
             <div className="relative z-30">
-              <BusinessTypeSelector
-                value={businessType}
-                onChange={(value) => {
-                  setBusinessType(value);
-                  clearAnalysis();
-                }}
+              <SearchBar
+                onLocationSelect={handleLocationSelect}
+                disabled={false}
+                selectedLocation={selectedLocation}
               />
             </div>
 
-            {/* Search Radius Slider */}
+            {/* Step 2: Search Radius Slider */}
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-medium text-slate-300">Search Radius</label>
@@ -293,11 +368,14 @@ export default function App() {
               </div>
             </div>
 
-            {/* Step 2: Location Search - Spotlight Style */}
+            {/* Step 3: Business Type - Icon Grid */}
             <div className="relative z-10">
-              <SearchBar
-                onLocationSelect={handleLocationSelect}
-                disabled={!businessType}
+              <BusinessTypeSelector
+                value={businessType}
+                onChange={(value) => {
+                  setBusinessType(value);
+                  clearAnalysis();
+                }}
               />
             </div>
           </div>

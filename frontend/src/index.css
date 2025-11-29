@@ -226,3 +226,697 @@
   background: transparent !important;
   border: none !important;
 }
+
+/* Recommended spot markers - ALWAYS visible and distinct */
+.recommended-spot-marker {
+  background: transparent !important;
+  border: none !important;
+  z-index: 9999 !important;
+}
+
+/* Recommended spots should NOT scale down as much - stay prominent */
+.map-zoom-7 .recommended-spot-marker > div,
+.map-zoom-8 .recommended-spot-marker > div {
+  transform: scale(0.6) !important;
+}
+
+.map-zoom-9 .recommended-spot-marker > div,
+.map-zoom-10 .recommended-spot-marker > div {
+  transform: scale(0.7) !important;
+}
+
+.map-zoom-11 .recommended-spot-marker > div,
+.map-zoom-12 .recommended-spot-marker > div {
+  transform: scale(0.8) !important;
+}
+
+.map-zoom-13 .recommended-spot-marker > div,
+.map-zoom-14 .recommended-spot-marker > div,
+.map-zoom-15 .recommended-spot-marker > div,
+.map-zoom-16 .recommended-spot-marker > div,
+.map-zoom-17 .recommended-spot-marker > div,
+.map-zoom-18 .recommended-spot-marker > div,
+.map-zoom-19 .recommended-spot-marker > div,
+.map-zoom-20 .recommended-spot-marker > div {
+  transform: scale(1) !important;
+}
+
+/* Dynamic marker sizing based on zoom level */
+/* Range: 10% (min) to 80% (max) for regular markers */
+.leaflet-marker-icon {
+  transition: transform 0.15s ease-out;
+}
+
+/* Zoom-based marker scaling using CSS classes */
+/* Very zoomed out - minimum 10% size */
+.map-zoom-7 .custom-marker > div,
+.map-zoom-8 .custom-marker > div {
+  transform: scale(0.1) !important;
+}
+
+.map-zoom-9 .custom-marker > div {
+  transform: scale(0.15) !important;
+}
+
+.map-zoom-10 .custom-marker > div {
+  transform: scale(0.2) !important;
+}
+
+.map-zoom-11 .custom-marker > div {
+  transform: scale(0.3) !important;
+}
+
+.map-zoom-12 .custom-marker > div {
+  transform: scale(0.4) !important;
+}
+
+.map-zoom-13 .custom-marker > div {
+  transform: scale(0.5) !important;
+}
+
+.map-zoom-14 .custom-marker > div {
+  transform: scale(0.6) !important;
+}
+
+.map-zoom-15 .custom-marker > div {
+  transform: scale(0.7) !important;
+}
+
+/* Max size capped at 80% - zoom 16 and above */
+.map-zoom-16 .custom-marker > div,
+.map-zoom-17 .custom-marker > div,
+.map-zoom-18 .custom-marker > div,
+.map-zoom-19 .custom-marker > div,
+.map-zoom-20 .custom-marker > div {
+  transform: scale(0.8) !important;
+}
+
+/* ============================================== */
+/* LIGHT MODE STYLES                              */
+/* ============================================== */
+
+/* Base light mode - when 'dark' class is NOT on html */
+:root:not(.dark) {
+  --canvas-deep: #f8fafc;
+  --canvas-base: #f1f5f9;
+  --surface-primary: rgba(255, 255, 255, 0.9);
+  --surface-secondary: rgba(248, 250, 252, 0.9);
+  --surface-border: rgba(0, 0, 0, 0.1);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+}
+
+/* Dark mode variables */
+.dark {
+  --canvas-deep: #020617;
+  --canvas-base: #0f172a;
+  --surface-primary: rgba(15, 23, 42, 0.8);
+  --surface-secondary: rgba(30, 41, 59, 0.7);
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+}
+
+/* Light mode glass panels */
+:root:not(.dark) .glass-panel {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+:root:not(.dark) .glass-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Light mode inputs */
+:root:not(.dark) .glass-input {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: #0f172a !important;
+}
+
+:root:not(.dark) .glass-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+:root:not(.dark) .glass-input:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Light mode buttons */
+:root:not(.dark) .btn-ghost {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: #334155 !important;
+}
+
+:root:not(.dark) .btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+/* Light mode chips */
+:root:not(.dark) .chip-inactive {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: #64748b !important;
+}
+
+:root:not(.dark) .chip-inactive:hover {
+  border-color: #94a3b8 !important;
+  color: #475569 !important;
+}
+
+/* Light mode leaflet map controls */
+:root:not(.dark) .leaflet-container {
+  background: #f1f5f9;
+}
+
+:root:not(.dark) .leaflet-control-zoom {
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:root:not(.dark) .leaflet-control-zoom a {
+  background: transparent !important;
+  color: #334155 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+:root:not(.dark) .leaflet-control-zoom a:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+:root:not(.dark) .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.98);
+  color: #0f172a;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+:root:not(.dark) .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Light mode scrollbar */
+:root:not(.dark) ::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.8);
+}
+
+:root:not(.dark) ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+:root:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
+
+/* Light mode skeleton loading */
+:root:not(.dark) .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.5) 25%,
+    rgba(226, 232, 240, 0.8) 50%,
+    rgba(226, 232, 240, 0.5) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* Light mode text colors - override common text utilities */
+:root:not(.dark) .text-slate-50,
+:root:not(.dark) .text-slate-100 {
+  color: #0f172a !important;
+}
+
+:root:not(.dark) .text-slate-200,
+:root:not(.dark) .text-slate-300 {
+  color: #334155 !important;
+}
+
+:root:not(.dark) .text-slate-400,
+:root:not(.dark) .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Light mode background overrides for common patterns */
+:root:not(.dark) .bg-canvas-deep {
+  background-color: #f8fafc !important;
+}
+
+:root:not(.dark) .bg-canvas-base {
+  background-color: #f1f5f9 !important;
+}
+
+:root:not(.dark) .bg-surface-primary {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+:root:not(.dark) .bg-surface-secondary {
+  background-color: rgba(248, 250, 252, 0.9) !important;
+}
+
+:root:not(.dark) .bg-surface-elevated {
+  background-color: rgba(241, 245, 249, 0.9) !important;
+}
+
+/* Light mode border overrides */
+:root:not(.dark) .border-surface-border {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+:root:not(.dark) .border-slate-700,
+:root:not(.dark) .border-slate-800 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light mode gradient backgrounds */
+:root:not(.dark) .bg-gradient-to-b.from-slate-900 {
+  background: linear-gradient(to bottom, #f1f5f9, #f8fafc) !important;
+}
+
+:root:not(.dark) .bg-gradient-to-r.from-slate-800 {
+  background: linear-gradient(to right, #f8fafc, #f1f5f9) !important;
+}
+
+/* Light mode divide colors */
+:root:not(.dark) .divide-slate-700 > :not([hidden]) ~ :not([hidden]),
+:root:not(.dark) .divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Light mode ring colors */
+:root:not(.dark) .ring-slate-800,
+:root:not(.dark) .ring-surface-border {
+  --tw-ring-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light mode hover states */
+:root:not(.dark) .hover\:bg-surface-elevated:hover {
+  background-color: rgba(226, 232, 240, 0.8) !important;
+}
+
+:root:not(.dark) .hover\:bg-slate-800:hover {
+  background-color: rgba(226, 232, 240, 0.6) !important;
+}
+
+/* Light mode focus states */
+:root:not(.dark) .focus\:border-primary-glow:focus {
+  border-color: #10b981 !important;
+}
+
+/* Score cards stay consistent */
+:root:not(.dark) .score-high {
+  background: rgba(16, 185, 129, 0.15) !important;
+}
+
+:root:not(.dark) .score-medium {
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+
+:root:not(.dark) .score-low {
+  background: rgba(244, 63, 94, 0.15) !important;
+}
+
+/* ============================================== */
+/* SIDEBAR & PANEL LIGHT MODE OVERRIDES           */
+/* ============================================== */
+
+/* Left sidebar panel - backdrop blur with light background */
+:root:not(.dark) .backdrop-blur-xl.bg-slate-900\/80 {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Right sidebar/floating panels */
+:root:not(.dark) .backdrop-blur-md.bg-slate-900\/90,
+:root:not(.dark) .backdrop-blur-lg.bg-slate-900\/90 {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Panel borders */
+:root:not(.dark) .border-white\/10,
+:root:not(.dark) .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Text color overrides for panels */
+:root:not(.dark) .text-white {
+  color: #0f172a !important;
+}
+
+:root:not(.dark) .text-white\/80,
+:root:not(.dark) .text-white\/70,
+:root:not(.dark) .text-white\/60 {
+  color: #334155 !important;
+}
+
+:root:not(.dark) .text-white\/50,
+:root:not(.dark) .text-white\/40 {
+  color: #64748b !important;
+}
+
+/* Slider track */
+:root:not(.dark) .bg-slate-700\/50 {
+  background: rgba(203, 213, 225, 0.6) !important;
+}
+
+:root:not(.dark) .bg-slate-700 {
+  background: #cbd5e1 !important;
+}
+
+:root:not(.dark) .bg-slate-700\/30 {
+  background: rgba(203, 213, 225, 0.4) !important;
+}
+
+/* Background overlays */
+:root:not(.dark) .bg-slate-900\/50,
+:root:not(.dark) .bg-slate-900\/60,
+:root:not(.dark) .bg-slate-900\/70,
+:root:not(.dark) .bg-slate-900\/80,
+:root:not(.dark) .bg-slate-900\/90 {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+:root:not(.dark) .bg-slate-800,
+:root:not(.dark) .bg-slate-800\/50,
+:root:not(.dark) .bg-slate-800\/60,
+:root:not(.dark) .bg-slate-800\/70,
+:root:not(.dark) .bg-slate-800\/80 {
+  background: rgba(241, 245, 249, 0.9) !important;
+}
+
+/* Panel shadows for light mode */
+:root:not(.dark) .shadow-2xl.shadow-black\/30 {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Business type selector cards */
+:root:not(.dark) .bg-slate-800\/30 {
+  background: rgba(241, 245, 249, 0.7) !important;
+}
+
+:root:not(.dark) .hover\:bg-slate-800\/50:hover {
+  background: rgba(226, 232, 240, 0.8) !important;
+}
+
+/* Active/selected states */
+:root:not(.dark) .bg-emerald-500\/10 {
+  background: rgba(16, 185, 129, 0.15) !important;
+}
+
+:root:not(.dark) .border-emerald-500\/20 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Floating stats panel (bottom right) */
+:root:not(.dark) .bg-gradient-to-br.from-slate-800\/95 {
+  background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95)) !important;
+}
+
+/* Score display backgrounds */
+:root:not(.dark) .bg-slate-900\/80 {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Ring and circle backgrounds */
+:root:not(.dark) .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+/* Preserve emerald/primary colors in light mode */
+:root:not(.dark) .text-emerald-400,
+:root:not(.dark) .text-emerald-500 {
+  color: #059669 !important;
+}
+
+:root:not(.dark) .text-cyan-400,
+:root:not(.dark) .text-cyan-500 {
+  color: #0891b2 !important;
+}
+
+/* Toggle buttons and switches */
+:root:not(.dark) .bg-slate-600,
+:root:not(.dark) .bg-slate-600\/50 {
+  background: #94a3b8 !important;
+}
+
+:root:not(.dark) .hover\:bg-slate-700:hover {
+  background: #cbd5e1 !important;
+}
+
+/* Mini stat cards */
+:root:not(.dark) .bg-slate-800\/40 {
+  background: rgba(241, 245, 249, 0.8) !important;
+}
+
+/* Analysis panel header */
+:root:not(.dark) .from-slate-800 {
+  background: linear-gradient(to right, #f8fafc, #f1f5f9) !important;
+}
+
+/* Dividers */
+:root:not(.dark) .bg-slate-700\/50 {
+  background: rgba(203, 213, 225, 0.5) !important;
+}
+
+/* Competitor/Landmark toggle buttons */
+:root:not(.dark) .bg-cyan-500\/20 {
+  background: rgba(6, 182, 212, 0.15) !important;
+}
+
+:root:not(.dark) .bg-orange-500\/20 {
+  background: rgba(249, 115, 22, 0.15) !important;
+}
+
+:root:not(.dark) .border-cyan-500\/30 {
+  border-color: rgba(6, 182, 212, 0.3) !important;
+}
+
+:root:not(.dark) .border-orange-500\/30 {
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+/* Input placeholder in light mode */
+:root:not(.dark) input::placeholder,
+:root:not(.dark) textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Range slider thumb */
+:root:not(.dark) input[type="range"] {
+  background: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* Loading skeleton pulse */
+:root:not(.dark) .animate-pulse {
+  background-color: rgba(203, 213, 225, 0.5) !important;
+}
+
+/* Fix for accent colored text that should stay vibrant */
+:root:not(.dark) .text-amber-400,
+:root:not(.dark) .text-amber-500 {
+  color: #d97706 !important;
+}
+
+:root:not(.dark) .text-rose-400,
+:root:not(.dark) .text-rose-500 {
+  color: #e11d48 !important;
+}
+
+:root:not(.dark) .text-violet-400,
+:root:not(.dark) .text-violet-500 {
+  color: #7c3aed !important;
+}
+
+/* Keep primary button text white */
+:root:not(.dark) .bg-gradient-to-r.from-emerald-500 .text-white,
+:root:not(.dark) .bg-emerald-500 .text-white,
+:root:not(.dark) button.bg-gradient-to-r {
+  color: white !important;
+}
+
+/* Button with gradient should keep white text */
+:root:not(.dark) .from-emerald-500.to-cyan-500 {
+  color: white !important;
+}
+
+/* Search input specific overrides */
+:root:not(.dark) .bg-black\/50 {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root:not(.dark) .bg-black\/70 {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+:root:not(.dark) input.text-white {
+  color: #0f172a !important;
+}
+
+/* Search dropdown */
+:root:not(.dark) .bg-slate-900\/95 {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+/* Dropdown items hover */
+:root:not(.dark) .hover\:bg-slate-800\/50:hover {
+  background: rgba(226, 232, 240, 0.7) !important;
+}
+
+:root:not(.dark) .bg-emerald-500\/10 {
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+/* Floating stats panel specific */
+:root:not(.dark) .rounded-2xl.backdrop-blur-md {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Mini badges/pills */
+:root:not(.dark) .bg-slate-700\/60 {
+  background: rgba(203, 213, 225, 0.6) !important;
+}
+
+:root:not(.dark) .bg-slate-700\/40 {
+  background: rgba(203, 213, 225, 0.4) !important;
+}
+
+/* Right panel specific styles */
+:root:not(.dark) .space-y-2 .text-xs.text-slate-500 {
+  color: #64748b !important;
+}
+
+:root:not(.dark) .space-y-1 .text-xs.text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Ensure all form inputs are readable */
+:root:not(.dark) input[type="text"],
+:root:not(.dark) input[type="search"] {
+  color: #0f172a !important;
+}
+
+/* Map overlay controls */
+:root:not(.dark) .bg-slate-800\/90 {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root:not(.dark) .bg-slate-900 {
+  background: #f8fafc !important;
+}
+
+/* Chip/tag active states */
+:root:not(.dark) .bg-emerald-500\/20 {
+  background: rgba(16, 185, 129, 0.18) !important;
+}
+
+:root:not(.dark) .bg-cyan-500\/10 {
+  background: rgba(6, 182, 212, 0.12) !important;
+}
+
+:root:not(.dark) .bg-orange-500\/10 {
+  background: rgba(249, 115, 22, 0.12) !important;
+}
+
+/* Dashboard cards text */
+:root:not(.dark) .font-semibold.text-white {
+  color: #0f172a !important;
+}
+
+:root:not(.dark) .font-medium.text-white {
+  color: #1e293b !important;
+}
+
+/* Stats numbers should be dark */
+:root:not(.dark) .text-2xl.font-bold.text-white,
+:root:not(.dark) .text-3xl.font-bold.text-white,
+:root:not(.dark) .text-xl.font-bold.text-white {
+  color: #0f172a !important;
+}
+
+/* Keep primary colored text vibrant */
+:root:not(.dark) .text-primary-glow,
+:root:not(.dark) .text-primary-bright {
+  color: #059669 !important;
+}
+
+/* Fix floating panel in bottom right */
+:root:not(.dark) .fixed.bottom-6.right-6 .backdrop-blur-md {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Business type selector inactive cards */
+:root:not(.dark) .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+:root:not(.dark) .hover\:bg-white\/5:hover {
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+
+:root:not(.dark) .hover\:border-white\/10:hover {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Placeholder text */
+:root:not(.dark) .placeholder-slate-500::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Right panel toggle buttons container */
+:root:not(.dark) .bg-slate-800\/60 {
+  background: rgba(241, 245, 249, 0.8) !important;
+}
+
+/* Bottom right stats - ensure dark text */
+:root:not(.dark) .text-lg.font-bold {
+  color: #0f172a !important;
+}
+
+:root:not(.dark) .text-sm.font-semibold {
+  color: #1e293b !important;
+}
+
+/* Legend/key colors - keep them visible */
+:root:not(.dark) .bg-emerald-400,
+:root:not(.dark) .bg-emerald-500 {
+  background-color: #10b981 !important;
+}
+
+:root:not(.dark) .bg-amber-400,
+:root:not(.dark) .bg-amber-500 {
+  background-color: #f59e0b !important;
+}
+
+:root:not(.dark) .bg-rose-400,
+:root:not(.dark) .bg-rose-500 {
+  background-color: #f43f5e !important;
+}
+
+/* Make sure analyze button keeps white text */
+:root:not(.dark) button.bg-gradient-to-r.from-emerald-500.to-cyan-500,
+:root:not(.dark) .bg-gradient-to-r.from-emerald-500.to-cyan-500 button {
+  color: white !important;
+}
+
+/* Generic white text in buttons should be preserved for colored backgrounds */
+:root:not(.dark) .bg-emerald-500 .text-white,
+:root:not(.dark) .bg-cyan-500 .text-white,
+:root:not(.dark) .bg-gradient-to-r .text-white {
+  color: white !important;
+}
+
+/* Fix the analyze button specifically */
+:root:not(.dark) button[class*="from-emerald-500"][class*="to-cyan-500"] {
+  color: white !important;
+}
+
+

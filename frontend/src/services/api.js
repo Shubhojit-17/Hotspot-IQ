@@ -81,6 +81,27 @@ export const geocodeLocation = async (address) => {
 };
 
 /**
+ * Reverse geocode coordinates to get address
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @param {number} radius - Optional radius in meters for area-based geocoding
+ * @returns {Promise<Object>} Address details { address, area_name, pincode, landmark }
+ */
+export const reverseGeocode = async (lat, lng, radius = 0) => {
+  try {
+    const params = { lat, lng };
+    if (radius > 0) {
+      params.radius = radius;
+    }
+    const response = await api.get('/reverse-geocode', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Reverse geocode error:', error);
+    throw error;
+  }
+};
+
+/**
  * Analyze a location for business potential
  * @param {number} lat - Latitude
  * @param {number} lng - Longitude
