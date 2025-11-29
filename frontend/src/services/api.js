@@ -7,7 +7,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -44,11 +44,11 @@ api.interceptors.response.use(
  */
 export const searchLocations = async (query) => {
   if (!query || query.length < 2) return [];
-  
+
   try {
     const response = await api.get('/autocomplete', { params: { query, limit: 10 } });
     const suggestions = response.data.suggestions || [];
-    
+
     // LatLong autocomplete returns { name, geoid } without coordinates
     // We need to geocode to get coordinates when user selects a location
     return suggestions.map(s => ({
@@ -119,7 +119,7 @@ export const analyzeLocation = async (lat, lng, businessType, filters = [], isMa
 export const getIsochrone = async (lat, lng, distanceKmOrMode = 1.0, timeMinutes = null) => {
   try {
     let payload = { lat, lng };
-    
+
     // Support both new format (distance_km) and legacy (mode + time_minutes)
     if (typeof distanceKmOrMode === 'number' && timeMinutes === null) {
       payload.distance_km = distanceKmOrMode;
@@ -129,7 +129,7 @@ export const getIsochrone = async (lat, lng, distanceKmOrMode = 1.0, timeMinutes
     } else {
       payload.distance_km = distanceKmOrMode;
     }
-    
+
     const response = await api.post('/isochrone', payload);
     return response.data;
   } catch (error) {
@@ -206,6 +206,25 @@ export const healthCheck = async () => {
     return response.data;
   } catch (error) {
     console.error('Health check failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send a message to the AI chat agent
+ * @param {string} message - User's message
+ * @param {Object} context - Context data (lat, lng, businessType, analysis)
+ * @returns {Promise<Object>} - AI response
+ */
+export const sendChatMessage = async (message, context = {}) => {
+  try {
+    const response = await api.post('/chat', {
+      message,
+      context
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Chat API error:', error);
     throw error;
   }
 };

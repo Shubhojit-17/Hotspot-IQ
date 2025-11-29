@@ -7,23 +7,24 @@ import RecommendedSpotsCard from './RecommendedSpotsCard';
 import CompetitorCard from './CompetitorCard';
 import LandmarksCard from './LandmarksCard';
 
-export default function AnalysisPanel({ 
+export default function AnalysisPanel({
   analysis,
   isLoading,
   isOpen,
   onClose,
-  onViewSpot 
+  onViewSpot,
+  onOpenChat
 }) {
   if (!isOpen) return null;
 
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
         onClick={onClose}
       />
-      
+
       {/* Panel */}
       <div className="fixed right-0 top-0 h-full w-full max-w-md bg-canvas-overlay border-l border-surface-border z-50 overflow-hidden flex flex-col animate-slide-in-right">
         {/* Header */}
@@ -47,7 +48,7 @@ export default function AnalysisPanel({
             </svg>
           </button>
         </div>
-        
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Summary stats */}
@@ -79,26 +80,26 @@ export default function AnalysisPanel({
               </div>
             </div>
           )}
-          
+
           {/* Recommended Spots - Primary focus */}
-          <RecommendedSpotsCard 
+          <RecommendedSpotsCard
             spots={analysis?.recommended_spots || []}
             isLoading={isLoading}
             onViewSpot={onViewSpot}
           />
-          
+
           {/* Competitors */}
-          <CompetitorCard 
+          <CompetitorCard
             competitors={analysis?.competitors?.nearby || []}
             isLoading={isLoading}
           />
-          
+
           {/* Landmarks */}
-          <LandmarksCard 
+          <LandmarksCard
             landmarks={analysis?.landmarks?.list || []}
             isLoading={isLoading}
           />
-          
+
           {/* DIGIPIN */}
           {!isLoading && analysis?.location?.digipin && (
             <div className="glass-panel p-4">
@@ -117,14 +118,17 @@ export default function AnalysisPanel({
             </div>
           )}
         </div>
-        
+
         {/* Footer actions */}
         <div className="p-4 border-t border-surface-border bg-surface-elevated">
           <div className="grid grid-cols-2 gap-3">
             <button className="px-4 py-2 bg-surface-secondary text-slate-300 rounded-lg hover:bg-slate-700 transition-colors text-sm">
               Export Report
             </button>
-            <button className="btn-primary text-sm">
+            <button
+              onClick={onOpenChat}
+              className="btn-primary text-sm"
+            >
               Ask AI Assistant
             </button>
           </div>

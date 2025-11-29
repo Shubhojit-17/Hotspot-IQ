@@ -13,6 +13,7 @@ import { BusinessTypeSelector, ProximityFilters } from './components/Filters';
 import { SearchBar } from './components/Search';
 import { MapView } from './components/Map';
 import { AnalysisPanel, LoadingProgress } from './components/Dashboard';
+import { ChatBot } from './components/Chat';
 
 // Hooks
 import { useAnalysis } from './hooks';
@@ -23,27 +24,28 @@ import { geocodeLocation } from './services/api';
 export default function App() {
   // Step 1: Business Type
   const [businessType, setBusinessType] = useState(null);
-  
+
   // Step 2: Proximity Filters
   const [selectedFilters, setSelectedFilters] = useState([]);
-  
+
   // Step 3: Selected Location
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  
+
   // Analysis state
-  const { 
-    analysis, 
-    isochrone, 
-    isLoading, 
+  const {
+    analysis,
+    isochrone,
+    isLoading,
     error,
     loadingStatus,
-    analyze, 
-    clearAnalysis 
+    analyze,
+    clearAnalysis
   } = useAnalysis();
-  
+
   // Panel state
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Handle location selection - geocode if needed
   const handleLocationSelect = useCallback(async (location) => {
@@ -52,7 +54,7 @@ export default function App() {
       setSelectedLocation(location);
       return;
     }
-    
+
     // Otherwise, geocode the location name to get coordinates
     setIsGeocoding(true);
     try {
@@ -92,13 +94,13 @@ export default function App() {
   // Handle analyze button click
   const handleAnalyze = useCallback(async () => {
     if (!selectedLocation || !businessType) return;
-    
+
     // Ensure we have coordinates
     if (selectedLocation.lat == null || selectedLocation.lng == null) {
       alert('Location coordinates are missing. Please select a location from the search results.');
       return;
     }
-    
+
     await analyze(selectedLocation, businessType, selectedFilters);
     setIsPanelOpen(true);
   }, [selectedLocation, businessType, selectedFilters, analyze]);
@@ -227,9 +229,9 @@ export default function App() {
                   </p>
                   <p className="text-xs text-slate-500">Spots Found</p>
                 </div>
-                
+
                 <div className="w-px h-12 bg-surface-border" />
-                
+
                 {/* Stats preview */}
                 <div className="text-left">
                   <p className="text-sm text-slate-300">
@@ -239,7 +241,7 @@ export default function App() {
                     <span className="text-accent-glow font-medium">{analysis.landmarks?.total || 0}</span> landmarks
                   </p>
                 </div>
-                
+
                 {/* Expand hint */}
                 <div className="text-slate-500 group-hover:text-slate-300 transition-colors">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,6 +261,16 @@ export default function App() {
         isOpen={isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
         onViewSpot={handleViewSpot}
+        onOpenChat={() => setIsChatOpen(true)}
+      />
+
+      {/* Chat Bot */}
+      <ChatBot
+        selectedLocation={selectedLocation}
+        businessType={businessType}
+        analysis={analysis}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
       />
     </div>
   );

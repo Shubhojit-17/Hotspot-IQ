@@ -21,8 +21,10 @@ class Config:
     # API Keys
     LATLONG_API_KEY = os.getenv('LATLONG_API_KEY', '')
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+    HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY', '')
+    HUGGINGFACE_MODEL = os.getenv('HUGGINGFACE_MODEL', 'meta-llama/Meta-Llama-3-8B-Instruct')
     
-    # CORS Settings
+    # LatLong API Configurationgs
     FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
     
     # LatLong.ai API Base URL (API Hub)
