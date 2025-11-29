@@ -88,7 +88,7 @@ const RELEVANCE_MATRIX = {
 const getRelevanceScore = (businessType, landmarkCategory) => {
   const bt = businessType?.toLowerCase() || 'other';
   const lc = landmarkCategory?.toLowerCase().replace(/\s+/g, '_') || 'default';
-  
+
   const businessScores = RELEVANCE_MATRIX[bt] || RELEVANCE_MATRIX['other'];
   return businessScores[lc] ?? businessScores['default'] ?? 0.5;
 };
@@ -96,19 +96,19 @@ const getRelevanceScore = (businessType, landmarkCategory) => {
 // Calculate marker style based on relevance
 const getMarkerStyle = (businessType, landmarkCategory) => {
   const score = getRelevanceScore(businessType, landmarkCategory);
-  
+
   // Opacity: 0.35 (low relevance) to 1.0 (high relevance)
   const opacity = 0.35 + (score * 0.65);
-  
+
   // Scale: 0.7 (low relevance) to 1.15 (high relevance)
   const scale = 0.7 + (score * 0.45);
-  
+
   // Size: 24px (low relevance) to 36px (high relevance)
   const size = Math.round(24 + (score * 12));
-  
+
   // Z-index: 100 (low relevance) to 900 (high relevance)
   const zIndex = Math.round(100 + (score * 800));
-  
+
   return { opacity, scale, size, zIndex, score };
 };
 
@@ -149,7 +149,7 @@ const LANDMARK_ICON_MAP = {
 const createCustomIcon = (color, iconPath, size = 32, opacity = 1, zIndex = 500) => {
   const iconSize = size;
   const innerIconSize = Math.round(size * 0.56); // Icon image size proportional to marker
-  
+
   return L.divIcon({
     className: 'custom-marker',
     html: `
@@ -184,17 +184,17 @@ const getLandmarkIcon = (category, businessType = null) => {
   const normalizedCategory = category?.toLowerCase().replace(/\s+/g, '_') || 'default';
   const bt = businessType?.toLowerCase() || 'other';
   const cacheKey = `${normalizedCategory}-${bt}`;
-  
+
   // Return cached icon if available
   if (landmarkIconCache[cacheKey]) {
     return landmarkIconCache[cacheKey];
   }
-  
+
   const iconPath = LANDMARK_ICON_MAP[normalizedCategory] || LANDMARK_ICON_MAP.default;
-  
+
   // Get contextual visibility styling
   const style = getMarkerStyle(bt, normalizedCategory);
-  
+
   // Create icon with contextual styling
   const icon = createCustomIcon('#06b6d4', iconPath, style.size, style.opacity, style.zIndex);
   landmarkIconCache[cacheKey] = icon;
@@ -243,7 +243,7 @@ const competitorIcon = createCustomIcon('#f43f5e', '/icons/store.svg');
 // Component to handle map view changes
 function MapController({ center, zoom }) {
   const map = useMap();
-  
+
   useEffect(() => {
     if (center) {
       map.flyTo(center, zoom || 15, {
@@ -251,28 +251,28 @@ function MapController({ center, zoom }) {
       });
     }
   }, [center, zoom, map]);
-  
+
   return null;
 }
 
 // Component to handle click events
 function MapClickHandler({ onClick }) {
   const map = useMap();
-  
+
   useEffect(() => {
     if (!onClick) return;
-    
+
     const handleClick = (e) => {
       onClick({
         lat: e.latlng.lat,
         lng: e.latlng.lng,
       });
     };
-    
+
     map.on('click', handleClick);
     return () => map.off('click', handleClick);
   }, [map, onClick]);
-  
+
   return null;
 }
 
@@ -290,12 +290,13 @@ export default function MapView({
   showLandmarks = true,
   showCompetitors = true,
   businessType = null, // For contextual visibility
+  radius = null, // Radius in meters
 }) {
   const mapRef = useRef(null);
   const [heatmapEnabled, setHeatmapEnabled] = useState(true);
   const [showSpots, setShowSpots] = useState(true);
   const [contextualVisibility, setContextualVisibility] = useState(true); // Toggle for contextual visibility
-  
+
   // Clear landmark icon cache when business type changes (for contextual visibility)
   useEffect(() => {
     // Clear cache to force re-creation of icons with new business type styling
@@ -329,7 +330,8 @@ export default function MapView({
   };
 
   // Calculate radius for the circular area (meters)
-  const areaRadius = selectedLocation?.is_major ? 2500 : 1500;
+  // Use provided radius prop if available, otherwise fallback to defaults
+  const areaRadius = radius || (selectedLocation?.is_major ? 2500 : 1500);
 
   return (
     <div className="absolute inset-0 z-0">
@@ -348,10 +350,10 @@ export default function MapView({
         />
 
         {/* Map controllers */}
-        <MapController 
-          center={selectedLocation && selectedLocation.lat != null && selectedLocation.lng != null 
-            ? [selectedLocation.lat, selectedLocation.lng] 
-            : null} 
+        <MapController
+          center={selectedLocation && selectedLocation.lat != null && selectedLocation.lng != null
+            ? [selectedLocation.lat, selectedLocation.lng]
+            : null}
           zoom={15}
         />
         <MapClickHandler onClick={onMapClick} />
@@ -371,7 +373,7 @@ export default function MapView({
             center={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
             competitors={competitorList}
             landmarks={landmarkList}
-            radius={selectedLocation.is_major ? 2500 : 1500}
+            radius={areaRadius}
             enabled={heatmapEnabled}
           />
         )}
@@ -380,71 +382,70 @@ export default function MapView({
         {showSpots && spotList
           .filter(s => s.lat != null && s.lng != null)
           .map((spot) => (
-          <Marker
-            key={`spot-${spot.rank}`}
-            position={[spot.lat, spot.lng]}
-            icon={createSpotIcon(spot.rank, getSpotColor(spot.rank))}
-            eventHandlers={{
-              click: () => onSpotClick && onSpotClick(spot)
-            }}
-          >
-            <Popup>
-              <div className="text-slate-900 min-w-[180px]">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-lg" style={{ color: getSpotColor(spot.rank) }}>#{spot.rank}</span>
-                  <span className="font-semibold">Recommended Spot</span>
+            <Marker
+              key={`spot-${spot.rank}`}
+              position={[spot.lat, spot.lng]}
+              icon={createSpotIcon(spot.rank, getSpotColor(spot.rank))}
+              eventHandlers={{
+                click: () => onSpotClick && onSpotClick(spot)
+              }}
+            >
+              <Popup>
+                <div className="text-slate-900 min-w-[180px]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-lg" style={{ color: getSpotColor(spot.rank) }}>#{spot.rank}</span>
+                    <span className="font-semibold">Recommended Spot</span>
+                  </div>
+                  <p className="text-xs font-mono text-slate-500 mb-2">
+                    {spot.lat.toFixed(6)}, {spot.lng.toFixed(6)}
+                  </p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${spot.rating === 'Excellent' ? 'bg-emerald-100 text-emerald-700' :
+                        spot.rating === 'Good' ? 'bg-cyan-100 text-cyan-700' :
+                          spot.rating === 'Moderate' ? 'bg-amber-100 text-amber-700' :
+                            'bg-orange-100 text-orange-700'
+                      }`}>
+                      {spot.rating}
+                    </span>
+                    <span className="text-xs text-slate-600">Score: {Math.round(spot.score)}</span>
+                  </div>
+                  <ul className="text-xs text-slate-600 space-y-0.5">
+                    {spot.reasons?.slice(0, 2).map((reason, i) => (
+                      <li key={i} className="flex items-start gap-1">
+                        <svg className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span>{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <p className="text-xs font-mono text-slate-500 mb-2">
-                  {spot.lat.toFixed(6)}, {spot.lng.toFixed(6)}
-                </p>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                    spot.rating === 'Excellent' ? 'bg-emerald-100 text-emerald-700' :
-                    spot.rating === 'Good' ? 'bg-cyan-100 text-cyan-700' :
-                    spot.rating === 'Moderate' ? 'bg-amber-100 text-amber-700' :
-                    'bg-orange-100 text-orange-700'
-                  }`}>
-                    {spot.rating}
-                  </span>
-                  <span className="text-xs text-slate-600">Score: {Math.round(spot.score)}</span>
-                </div>
-                <ul className="text-xs text-slate-600 space-y-0.5">
-                  {spot.reasons?.slice(0, 2).map((reason, i) => (
-                    <li key={i} className="flex items-start gap-1">
-                      <svg className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span>{reason}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          ))}
 
         {/* Competitor markers - only show those with coordinates */}
         {showCompetitors && competitorList
           .filter(c => c.lat != null && c.lng != null)
           .map((competitor, index) => (
-          <Marker
-            key={`competitor-${index}`}
-            position={[competitor.lat, competitor.lng]}
-            icon={competitorIcon}
-          >
-            <Popup>
-              <div className="text-slate-900">
-                <p className="font-semibold">{competitor.name}</p>
-                <p className="text-xs text-slate-500">{competitor.category}</p>
-                {competitor.distance && (
-                  <p className="text-xs text-rose-600 mt-1">
-                    {competitor.distance}m away
-                  </p>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+            <Marker
+              key={`competitor-${index}`}
+              position={[competitor.lat, competitor.lng]}
+              icon={competitorIcon}
+            >
+              <Popup>
+                <div className="text-slate-900">
+                  <p className="font-semibold">{competitor.name}</p>
+                  <p className="text-xs text-slate-500">{competitor.category}</p>
+                  {competitor.distance && (
+                    <p className="text-xs text-rose-600 mt-1">
+                      {competitor.distance}m away
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
 
         {/* Landmark markers - only show those with coordinates */}
         {/* Uses contextual visibility to adjust opacity/size based on business relevance */}
@@ -468,30 +469,28 @@ export default function MapView({
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-slate-400">Relevance:</span>
                           <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full ${
-                                relevance >= 0.8 ? 'bg-emerald-500' :
-                                relevance >= 0.6 ? 'bg-cyan-500' :
-                                relevance >= 0.4 ? 'bg-amber-500' :
-                                'bg-slate-400'
-                              }`}
+                            <div
+                              className={`h-full rounded-full ${relevance >= 0.8 ? 'bg-emerald-500' :
+                                  relevance >= 0.6 ? 'bg-cyan-500' :
+                                    relevance >= 0.4 ? 'bg-amber-500' :
+                                      'bg-slate-400'
+                                }`}
                               style={{ width: `${relevance * 100}%` }}
                             />
                           </div>
-                          <span className={`text-xs font-medium ${
-                            relevance >= 0.8 ? 'text-emerald-600' :
-                            relevance >= 0.6 ? 'text-cyan-600' :
-                            relevance >= 0.4 ? 'text-amber-600' :
-                            'text-slate-500'
-                          }`}>
+                          <span className={`text-xs font-medium ${relevance >= 0.8 ? 'text-emerald-600' :
+                              relevance >= 0.6 ? 'text-cyan-600' :
+                                relevance >= 0.4 ? 'text-amber-600' :
+                                  'text-slate-500'
+                            }`}>
                             {Math.round(relevance * 100)}%
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-400 mt-1">
                           {relevance >= 0.8 ? 'High impact for your business' :
-                           relevance >= 0.6 ? 'Moderate impact' :
-                           relevance >= 0.4 ? 'Some relevance' :
-                           'Low relevance for this business type'}
+                            relevance >= 0.6 ? 'Moderate impact' :
+                              relevance >= 0.4 ? 'Some relevance' :
+                                'Low relevance for this business type'}
                         </p>
                       </div>
                     )}
@@ -501,7 +500,7 @@ export default function MapView({
             );
           })}
       </MapContainer>
-      
+
       {/* Heatmap Toggle & Legend */}
       {selectedLocation && competitorList.length > 0 && (
         <div className="absolute bottom-4 right-4 z-[1000]">
@@ -509,11 +508,10 @@ export default function MapView({
           <div className="flex flex-wrap gap-2 mb-2 justify-end">
             <button
               onClick={() => setHeatmapEnabled(!heatmapEnabled)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                heatmapEnabled 
-                  ? 'bg-primary-glow text-canvas-deep' 
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${heatmapEnabled
+                  ? 'bg-primary-glow text-canvas-deep'
                   : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
-              }`}
+                }`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -523,11 +521,10 @@ export default function MapView({
             {spotList.length > 0 && (
               <button
                 onClick={() => setShowSpots(!showSpots)}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                  showSpots 
-                    ? 'bg-emerald-500 text-white' 
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${showSpots
+                    ? 'bg-emerald-500 text-white'
                     : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
-                }`}
+                  }`}
               >
                 <img src="/icons/star.svg" alt="" className="w-4 h-4" style={{ filter: showSpots ? 'brightness(0) invert(1)' : 'invert(68%) sepia(51%) saturate(1016%) hue-rotate(359deg) brightness(101%) contrast(96%)' }} />
                 {showSpots ? `${spotList.length} Spots` : 'Show Spots'}
@@ -537,11 +534,10 @@ export default function MapView({
             {businessType && landmarkList.length > 0 && (
               <button
                 onClick={() => setContextualVisibility(!contextualVisibility)}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                  contextualVisibility 
-                    ? 'bg-violet-500 text-white' 
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${contextualVisibility
+                    ? 'bg-violet-500 text-white'
                     : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
-                }`}
+                  }`}
                 title="Adjusts landmark visibility based on relevance to your business type"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -552,7 +548,7 @@ export default function MapView({
               </button>
             )}
           </div>
-          
+
           {/* Legend */}
           {heatmapEnabled && (
             <div className="bg-canvas-base/90 backdrop-blur-sm border border-surface-border rounded-lg p-3 shadow-lg">
@@ -570,7 +566,7 @@ export default function MapView({
               </div>
             </div>
           )}
-          
+
           {/* Contextual Visibility Legend */}
           {contextualVisibility && businessType && landmarkList.length > 0 && (
             <div className="bg-canvas-base/90 backdrop-blur-sm border border-surface-border rounded-lg p-3 shadow-lg mt-2">

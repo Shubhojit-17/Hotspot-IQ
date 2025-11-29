@@ -13,15 +13,15 @@ import { analyzeLocation, getIsochrone, getDigipin } from '../services/api';
  */
 function normalizeAllLandmarks(landmarksData) {
   if (!landmarksData) return [];
-  
+
   // If it's already an array, return it
   if (Array.isArray(landmarksData)) return landmarksData;
-  
+
   // Check for 'list' property first (our API structure)
   if (Array.isArray(landmarksData.list)) {
     return landmarksData.list;
   }
-  
+
   // If it has by_category with arrays, flatten all categories into one array
   if (landmarksData.by_category && typeof landmarksData.by_category === 'object') {
     const allLandmarks = [];
@@ -37,7 +37,7 @@ function normalizeAllLandmarks(landmarksData) {
     });
     if (allLandmarks.length > 0) return allLandmarks;
   }
-  
+
   return [];
 }
 
@@ -46,7 +46,7 @@ export default function useAnalysis() {
   const [isochrone, setIsochrone] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Progressive loading status
   const [loadingStatus, setLoadingStatus] = useState({
     step: '',
@@ -64,7 +64,7 @@ export default function useAnalysis() {
     }));
   };
 
-  const analyze = useCallback(async (location, businessType, filters) => {
+  const analyze = useCallback(async (location, businessType, filters, radius = 1000) => {
     if (!location || !businessType) {
       setError('Location and business type are required');
       return { success: false, isValidationError: false };
@@ -80,15 +80,16 @@ export default function useAnalysis() {
     setAnalysis(null);
     setIsochrone(null);
     setError(null);
-    
+
     setIsLoading(true);
     setLoadingStatus({ step: 'init', message: 'Starting analysis...', progress: 0, details: [] });
 
     try {
       // Determine isochrone radius based on whether it's a major area
       const isMajorArea = location.is_major || false;
-      const isochroneRadius = isMajorArea ? 2.5 : 1.5;
-      
+      // Use provided radius (converted to km) or fallback to defaults
+      const isochroneRadius = radius ? (radius / 1000) : (isMajorArea ? 2.5 : 1.5);
+
       // Step 1: Initialize & Validate Location
       updateStatus('validation', '🛡️ Validating location...', 10);
       await new Promise(r => setTimeout(r, 200)); // Brief delay for UI feedback
@@ -106,24 +107,25 @@ export default function useAnalysis() {
 
       // Step 3: Run main analysis (includes validation + competitors + landmarks)
       updateStatus('analysis', '🔍 Analyzing location & searching for competitors...', 30);
-      
+
       const analysisData = await analyzeLocation(
-        location.lat, 
-        location.lng, 
-        businessType, 
-        filters, 
-        isMajorArea
+        location.lat,
+        location.lng,
+        businessType,
+        filters,
+        isMajorArea,
+        radius
       );
 
       // Extract counts for status
       const competitorCount = analysisData.competitors?.count || 0;
       const landmarkCount = analysisData.landmarks?.total || 0;
-      
-      updateStatus('competitors', `✅ Found ${competitorCount} competitors`, 60, 
+
+      updateStatus('competitors', `✅ Found ${competitorCount} competitors`, 60,
         `🏪 ${competitorCount} ${businessType}s found in area`);
-      
+
       await new Promise(r => setTimeout(r, 300));
-      
+
       updateStatus('landmarks', `✅ Found ${landmarkCount} landmarks`, 75,
         `🏛️ ${landmarkCount} landmarks identified`);
 
@@ -147,7 +149,7 @@ export default function useAnalysis() {
 
       // Log raw response for debugging
       console.log('📊 Raw API Response:', JSON.stringify(analysisData, null, 2));
-      
+
       // Normalize the API response to match frontend expectations
       const normalizedAnalysis = {
         // Recommended spots (new feature)
@@ -155,8 +157,8 @@ export default function useAnalysis() {
         // Extract competitors from nested structure
         competitors: {
           count: analysisData.competitors?.count || 0,
-          nearby: Array.isArray(analysisData.competitors?.nearby) 
-            ? analysisData.competitors.nearby 
+          nearby: Array.isArray(analysisData.competitors?.nearby)
+            ? analysisData.competitors.nearby
             : []
         },
         // Extract landmarks
@@ -172,7 +174,7 @@ export default function useAnalysis() {
         address: analysisData.location?.address || {},
         business_type: analysisData.business_type || businessType,
       };
-      
+
       // Log normalized data for debugging
       console.log('📊 Normalized Analysis:', {
         recommended_spots: normalizedAnalysis.recommended_spots,
@@ -181,20 +183,20 @@ export default function useAnalysis() {
       });
 
       // Complete!
-      updateStatus('complete', '✅ Analysis complete!', 100, 
+      updateStatus('complete', '✅ Analysis complete!', 100,
         `🎯 Found ${spotsCount} recommended locations`);
 
       setAnalysis(normalizedAnalysis);
       setIsochrone(isochroneData);
-      
+
       return { success: true, isValidationError: false };
     } catch (err) {
       console.error('Analysis error:', err);
-      
+
       // Check if this is a validation error (location invalid)
       const isValidationError = err.isValidationError || false;
       const errorMessage = err.message || 'Failed to analyze location';
-      
+
       setError(errorMessage);
       setLoadingStatus(prev => ({
         ...prev,
@@ -202,16 +204,16 @@ export default function useAnalysis() {
         message: `❌ ${errorMessage}`,
         progress: 0
       }));
-      
+
       // Keep analysis and isochrone null (no markers on map)
       setAnalysis(null);
       setIsochrone(null);
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         isValidationError,
         errorType: err.errorType,
-        errorMessage 
+        errorMessage
       };
     } finally {
       setIsLoading(false);

@@ -90,7 +90,7 @@ export const geocodeLocation = async (address) => {
  * @returns {Promise<Object>} Analysis results
  * @throws {Error} With validation error message if location is invalid
  */
-export const analyzeLocation = async (lat, lng, businessType, filters = [], isMajor = false) => {
+export const analyzeLocation = async (lat, lng, businessType, filters = [], isMajor = false, radius = 1000) => {
   try {
     const response = await api.post('/analyze', {
       lat,
@@ -98,6 +98,7 @@ export const analyzeLocation = async (lat, lng, businessType, filters = [], isMa
       business_type: businessType,
       filters,
       is_major: isMajor,
+      radius,
     });
     return response.data;
   } catch (error) {

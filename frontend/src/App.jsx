@@ -75,6 +75,8 @@ export default function App() {
 
   // Step 2: Proximity Filters
   const [selectedFilters, setSelectedFilters] = useState([]);
+  // Step 2.5: Radius
+  const [radius, setRadius] = useState(1000);
 
   // Step 3: Selected Location
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -160,7 +162,8 @@ export default function App() {
     setToast(null);
 
     // Run analysis (this clears markers internally before fetching)
-    const result = await analyze(selectedLocation, businessType, selectedFilters);
+    // Run analysis (this clears markers internally before fetching)
+    const result = await analyze(selectedLocation, businessType, selectedFilters, radius);
 
     // Handle validation errors
     if (!result.success) {
@@ -225,6 +228,7 @@ export default function App() {
           showLandmarks={showLandmarks}
           showCompetitors={showCompetitors}
           businessType={businessType}
+          radius={radius}
         />
 
         {/* Control Panel - Left Side */}
@@ -247,6 +251,30 @@ export default function App() {
                 value={selectedFilters}
                 onChange={setSelectedFilters}
               />
+            </div>
+
+            {/* Step 2.5: Radius Slider */}
+            <div className="glass-panel p-4 relative z-15">
+              <div className="mb-2 flex justify-between items-center">
+                <label className="text-sm font-medium text-slate-300">Search Radius</label>
+                <span className="text-xs font-mono text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded">
+                  {radius >= 1000 ? `${(radius / 1000).toFixed(1)} km` : `${radius} m`}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="500"
+                max="5000"
+                step="100"
+                value={radius}
+                onChange={(e) => setRadius(parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                <span>0.5 km</span>
+                <span>2.5 km</span>
+                <span>5.0 km</span>
+              </div>
             </div>
 
             {/* Step 3: Location Search - Lowest z-index */}
@@ -353,8 +381,8 @@ export default function App() {
               <button
                 onClick={() => setShowLandmarks(!showLandmarks)}
                 className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${showLandmarks
-                    ? 'bg-cyan-500 text-white'
-                    : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
+                  ? 'bg-cyan-500 text-white'
+                  : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
                   }`}
               >
                 <img
@@ -368,8 +396,8 @@ export default function App() {
               <button
                 onClick={() => setShowCompetitors(!showCompetitors)}
                 className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${showCompetitors
-                    ? 'bg-rose-500 text-white'
-                    : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
+                  ? 'bg-rose-500 text-white'
+                  : 'bg-surface-secondary text-slate-400 hover:bg-surface-elevated'
                   }`}
               >
                 <img
