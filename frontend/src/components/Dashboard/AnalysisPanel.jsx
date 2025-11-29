@@ -15,6 +15,69 @@ export default function AnalysisPanel({
   onViewSpot,
   onOpenChat
 }) {
+  const handleExport = () => {
+    if (!analysis) return;
+
+    // Helper to escape CSV fields
+    const escape = (field) => {
+      if (field == null) return '';
+      const stringField = String(field);
+      if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+        return `"${stringField.replace(/"/g, '""')}"`;
+      }
+      return stringField;
+    };
+
+    let csvContent = "Category,Name,Details,Score/Distance\n";
+
+    // Location Info
+    const locationName = analysis.location?.name || analysis.address?.formatted_address || "Unknown Location";
+    csvContent += `Location,${escape(locationName)},,\n`;
+    if (analysis.location?.digipin) {
+      csvContent += `DIGIPIN,${escape(analysis.location.digipin)},,\n`;
+    }
+    csvContent += "\n";
+
+    // Recommended Spots
+    if (analysis.recommended_spots?.length) {
+      csvContent += "Recommended Spots,,,\n";
+      analysis.recommended_spots.forEach((spot, idx) => {
+        csvContent += `Spot #${idx + 1},${escape(spot.rating_label)},Lat: ${spot.lat} Lng: ${spot.lng},${spot.total_score}\n`;
+      });
+      csvContent += "\n";
+    }
+
+    // Competitors
+    if (analysis.competitors?.nearby?.length) {
+      csvContent += "Competitors,,,\n";
+      analysis.competitors.nearby.forEach((comp) => {
+        csvContent += `Competitor,${escape(comp.name)},${escape(comp.vicinity || comp.address)},${comp.distance}m\n`;
+      });
+      csvContent += "\n";
+    }
+
+    // Landmarks
+    if (analysis.landmarks?.list?.length) {
+      csvContent += "Landmarks,,,\n";
+      analysis.landmarks.list.forEach((lm) => {
+        csvContent += `Landmark,${escape(lm.name)},${escape(lm.type)},${lm.distance}m\n`;
+      });
+    }
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `hotspot_iq_analysis_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -122,7 +185,10 @@ export default function AnalysisPanel({
         {/* Footer actions */}
         <div className="p-4 border-t border-surface-border bg-surface-elevated">
           <div className="grid grid-cols-2 gap-3">
-            <button className="px-4 py-2 bg-surface-secondary text-slate-300 rounded-lg hover:bg-slate-700 transition-colors text-sm">
+            <button
+              onClick={handleExport}
+              className="px-4 py-2 bg-surface-secondary text-slate-300 rounded-lg hover:bg-slate-700 transition-colors text-sm"
+            >
               Export Report
             </button>
             <button

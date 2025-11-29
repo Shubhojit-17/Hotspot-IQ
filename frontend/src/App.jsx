@@ -389,8 +389,8 @@ export default function App() {
                 className={`
                   w-full py-4 rounded-xl text-base font-semibold transition-all duration-300
                   flex items-center justify-center gap-2
-                  ${canAnalyze 
-                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98]' 
+                  ${canAnalyze
+                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98]'
                     : 'bg-slate-800 text-slate-500 cursor-not-allowed'}
                 `}
               >

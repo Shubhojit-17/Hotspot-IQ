@@ -11,9 +11,9 @@ export default function Header({ isDarkMode, onToggleTheme }) {
         <div className="flex items-center gap-2">
           {/* Logo Image */}
           <div className="w-8 h-8 flex items-center justify-center">
-            <img 
-              src="/hotspot-logo.png" 
-              alt="Hotspot IQ" 
+            <img
+              src="/hotspot-logo.png"
+              alt="Hotspot IQ"
               className="w-8 h-8 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
@@ -28,7 +28,7 @@ export default function Header({ isDarkMode, onToggleTheme }) {
               </svg>
             </div>
           </div>
-          
+
           {/* Brand Text */}
           <div className="leading-tight">
             <h1 className="text-base font-bold tracking-tight">
@@ -53,7 +53,7 @@ export default function Header({ isDarkMode, onToggleTheme }) {
             <a href="#" className={`px-3 py-1.5 text-xs ${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'} rounded-full transition-all duration-200`}>
               Analytics
             </a>
-            <a href="#" className={`px-3 py-1.5 text-xs ${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'} rounded-full transition-all duration-200`}>
+            <a href="https://apihub.latlong.ai/Documentation" target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all duration-200">
               API Docs
             </a>
           </nav>
@@ -87,9 +87,9 @@ export default function Header({ isDarkMode, onToggleTheme }) {
           </button>
 
           {/* GitHub Link */}
-          <a 
-            href="https://github.com/Shubhojit-17/Hotspot-IQ" 
-            target="_blank" 
+          <a
+            href="https://github.com/Shubhojit-17/Hotspot-IQ"
+            target="_blank"
             rel="noopener noreferrer"
             className={`w-7 h-7 flex items-center justify-center rounded-full ${isDarkMode ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 hover:border-slate-300'} border transition-all duration-200 group`}
           >

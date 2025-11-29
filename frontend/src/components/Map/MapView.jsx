@@ -214,7 +214,7 @@ const createSpotIcon = (rank, color) => {
   // Much larger than other markers
   const size = 52;
   const fontSize = 18;
-  
+
   // Bright, high-contrast colors for each rank
   const spotColors = {
     1: { bg: '#FFD700', text: '#000', glow: 'rgba(255, 215, 0, 0.8)', border: '#FFA500' },  // Gold
@@ -223,9 +223,9 @@ const createSpotIcon = (rank, color) => {
     4: { bg: '#9333EA', text: '#fff', glow: 'rgba(147, 51, 234, 0.8)', border: '#7C3AED' },  // Purple
     5: { bg: '#EC4899', text: '#fff', glow: 'rgba(236, 72, 153, 0.8)', border: '#DB2777' },  // Pink
   };
-  
+
   const colors = spotColors[rank] || spotColors[5];
-  
+
   return L.divIcon({
     className: 'recommended-spot-marker',
     html: `
@@ -357,7 +357,7 @@ function ZoomTracker({ onZoomChange }) {
     const handleZoom = () => {
       const zoom = Math.round(map.getZoom());
       onZoomChange(zoom);
-      
+
       // Update CSS class on map container for zoom-based styling
       const container = map.getContainer();
       // Remove old zoom classes
@@ -486,7 +486,7 @@ export default function MapView({
         {/* Tile layer - switches between dark and light mode */}
         <TileLayer
           key={isDarkMode ? 'dark' : 'light'}
-          url={isDarkMode 
+          url={isDarkMode
             ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           }
@@ -541,8 +541,8 @@ export default function MapView({
               <Popup>
                 <div className="text-slate-900 min-w-[200px]">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold" 
-                         style={{ background: spot.rank === 1 ? '#FFD700' : spot.rank === 2 ? '#C0C0C0' : spot.rank === 3 ? '#CD7F32' : spot.rank === 4 ? '#9333EA' : '#EC4899' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+                      style={{ background: spot.rank === 1 ? '#FFD700' : spot.rank === 2 ? '#C0C0C0' : spot.rank === 3 ? '#CD7F32' : spot.rank === 4 ? '#9333EA' : '#EC4899' }}>
                       {spot.rank}
                     </div>
                     <div>
@@ -555,9 +555,9 @@ export default function MapView({
                   </p>
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${spot.rating === 'Excellent' ? 'bg-emerald-100 text-emerald-700' :
-                        spot.rating === 'Good' ? 'bg-cyan-100 text-cyan-700' :
-                          spot.rating === 'Moderate' ? 'bg-amber-100 text-amber-700' :
-                            'bg-orange-100 text-orange-700'
+                      spot.rating === 'Good' ? 'bg-cyan-100 text-cyan-700' :
+                        spot.rating === 'Moderate' ? 'bg-amber-100 text-amber-700' :
+                          'bg-orange-100 text-orange-700'
                       }`}>
                       {spot.rating}
                     </span>
@@ -609,9 +609,9 @@ export default function MapView({
             const relevance = getRelevanceScore(businessType, landmark.category);
             return (
               <Marker
-              key={`landmark-${index}`}
-              position={[landmark.lat, landmark.lng]}
-              icon={getLandmarkIcon(landmark.category, contextualVisibility ? businessType : null)}
+                key={`landmark-${index}`}
+                position={[landmark.lat, landmark.lng]}
+                icon={getLandmarkIcon(landmark.category, contextualVisibility ? businessType : null)}
                 zIndexOffset={contextualVisibility ? Math.round(relevance * 800) : 0}
               >
                 <Popup>
@@ -625,17 +625,17 @@ export default function MapView({
                           <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${relevance >= 0.8 ? 'bg-emerald-500' :
-                                  relevance >= 0.6 ? 'bg-cyan-500' :
-                                    relevance >= 0.4 ? 'bg-amber-500' :
-                                      'bg-slate-400'
+                                relevance >= 0.6 ? 'bg-cyan-500' :
+                                  relevance >= 0.4 ? 'bg-amber-500' :
+                                    'bg-slate-400'
                                 }`}
                               style={{ width: `${relevance * 100}%` }}
                             />
                           </div>
                           <span className={`text-xs font-medium ${relevance >= 0.8 ? 'text-emerald-600' :
-                              relevance >= 0.6 ? 'text-cyan-600' :
-                                relevance >= 0.4 ? 'text-amber-600' :
-                                  'text-slate-500'
+                            relevance >= 0.6 ? 'text-cyan-600' :
+                              relevance >= 0.4 ? 'text-amber-600' :
+                                'text-slate-500'
                             }`}>
                             {Math.round(relevance * 100)}%
                           </span>
@@ -657,8 +657,7 @@ export default function MapView({
 
       {/* Unified Bottom-Right Controls - Single Column Stack */}
       {selectedLocation && !isLoading && (
-        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-3 w-[300px]">
-          
+        <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2 max-w-[220px]">
           {/* Row 1: Quick Stats Panel */}
           {analysis && onOpenPanel && (
             <button
@@ -725,9 +724,9 @@ export default function MapView({
             <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-2 flex flex-wrap gap-2 shadow-xl">
               <button
                 onClick={() => setHeatmapEnabled(!heatmapEnabled)}
-                className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${heatmapEnabled
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
-                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${heatmapEnabled
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -738,9 +737,9 @@ export default function MapView({
               {spotList.length > 0 && (
                 <button
                   onClick={() => setShowSpots(!showSpots)}
-                  className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${showSpots
-                      ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
-                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                  className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showSpots
+                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                     }`}
                 >
                   <img src="/icons/star.svg" alt="" className="w-4 h-4" style={{ filter: showSpots ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
@@ -750,9 +749,9 @@ export default function MapView({
               {businessType && landmarkList.length > 0 && (
                 <button
                   onClick={() => setContextualVisibility(!contextualVisibility)}
-                  className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${contextualVisibility
-                      ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25'
-                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                  className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${contextualVisibility
+                    ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25'
+                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                     }`}
                   title="Adjusts landmark visibility based on relevance to your business type"
                 >

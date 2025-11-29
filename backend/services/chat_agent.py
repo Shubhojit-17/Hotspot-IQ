@@ -73,40 +73,68 @@ def _compose_prompt(system_instructions: str, analysis_data: Dict[str, Any], mes
     # Basic location & analysis
     if analysis_data:
         context_lines.append(f"Location: {analysis_data.get('lat')},{analysis_data.get('lng')}")
-        address = analysis_data.get('address', {})
+        
+        # Address
+        address = analysis_data.get('location', {}).get('address', {})
         if isinstance(address, dict):
             context_lines.append(f"Address: {address.get('formatted_address','')}")
+        
         context_lines.append(f"Business type: {analysis_data.get('business_type','')}")
-        context_lines.append(f"Opportunity score: {analysis_data.get('opportunity_score','N/A')}")
-        comp_count = 0
-        try:
-            comp_count = analysis_data.get('competitors', {}).get('count', 0)
-        except Exception:
-            comp_count = 0
+        
+        # Opportunity Score
+        opp_score = analysis_data.get('opportunity_score')
+        if opp_score:
+             context_lines.append(f"Opportunity score: {opp_score}")
+
+        # Competitors - Detailed List
+        competitors = analysis_data.get('competitors', {})
+        comp_count = competitors.get('count', 0)
         context_lines.append(f"Competitors nearby: {comp_count}")
+        
+        nearby_comps = competitors.get('nearby', [])
+        if nearby_comps:
+            context_lines.append("Nearby Competitors (Detailed):")
+            # Include more competitors for "every detail"
+            for i, comp in enumerate(nearby_comps[:15]): 
+                dist = comp.get('distance', 'N/A')
+                name = comp.get('name', 'Unknown')
+                context_lines.append(f"- {name} ({dist}m)")
 
-    # Add brief landmarks summary if present
-    landmarks = analysis_data.get('landmarks') if analysis_data else None
-    if landmarks:
-        try:
-            by_cat = landmarks.get('by_category', {})
-            for k, v in (by_cat.items() if isinstance(by_cat, dict) else []):
-                context_lines.append(f"Landmarks - {k}: {v}")
-        except Exception:
-            pass
+        # Landmarks - Detailed List
+        landmarks = analysis_data.get('landmarks', {})
+        lm_count = landmarks.get('total', 0)
+        context_lines.append(f"Total Landmarks: {lm_count}")
+        
+        nearby_lms = landmarks.get('list', [])
+        if nearby_lms:
+            context_lines.append("Nearby Landmarks (Detailed):")
+            for i, lm in enumerate(nearby_lms[:15]):
+                name = lm.get('name', 'Unknown')
+                cat = lm.get('category', 'landmark')
+                context_lines.append(f"- {name} ({cat})")
 
-    # Add recommended spots
+    # Add recommended spots with REASONING
     rec_spots = analysis_data.get('recommended_spots') if analysis_data else None
     if rec_spots:
-        context_lines.append("Recommended Spots (Top 5):")
+        context_lines.append("Recommended Spots (Top 5) with Reasoning:")
         for i, spot in enumerate(rec_spots[:5], 1):
-            context_lines.append(f"- Spot #{i}: Score {spot.get('total_score', 'N/A')}/100 - {spot.get('rating_label', 'N/A')} (Lat: {spot.get('lat')}, Lng: {spot.get('lng')})")
+            score = spot.get('total_score', 'N/A')
+            label = spot.get('rating_label', 'N/A')
+            lat = spot.get('lat')
+            lng = spot.get('lng')
+            # Extract reasoning list
+            reasons = spot.get('reasons', [])
+            reason_str = "; ".join(reasons) if reasons else "High opportunity score"
+            
+            context_lines.append(f"- Spot #{i}: Score {score}/100 - {label}")
+            context_lines.append(f"  Coordinates: {lat}, {lng}")
+            context_lines.append(f"  Why selected: {reason_str}")
 
-    # Add web snippets
+    # Add web snippets - CRITICAL for "actual AI" feel
     if web_snippets:
-        context_lines.append("Web snippets:")
+        context_lines.append("Web Search Results (Use these for external context):")
         for s in web_snippets:
-            context_lines.append(f"- {s.get('title','')}: {s.get('snippet','')[:240]}  ({s.get('href','')})")
+            context_lines.append(f"- {s.get('title','')}: {s.get('snippet','')[:300]}  ({s.get('href','')})")
 
     # Add small local docs
     if local_docs:
@@ -129,16 +157,28 @@ def answer_question(message: str, context: Dict[str, Any]) -> Dict[str, Any]:
     """Main entrypoint used by the route.
 
     Steps:
-    - Ensure we have analysis_data (fetch if needed using provided services in context)
-    - Run a quick web search for the user query
-    - Load small local docs
-    - Compose prompt and call OpenAI Chat completion
+    - Ensure we have analysis_data
+    - Run MANDATORY web searches for location context and competitors
+    - Compose prompt with detailed reasoning and search results
+    - Call OpenAI Chat completion
     """
     # Provide helpful system instruction
     system = (
-        "You are Hotspot IQ, an expert location intelligence assistant for small businesses. "
-        "Answer concisely, cite which data sources you used (local analysis, project docs, web search), "
-        "and when you are uncertain say so. Prioritize local analysis data over web snippets."
+        "You are 'Hotspot IQ', an elite Location Intelligence Analyst for the Indian market.\n\n"
+        "**Your Goal:** Provide data-backed site selection advice to business owners.\n\n"
+        "**Your Capabilities (Tools):**\n"
+        "1. You have access to a tool `get_location_intelligence` which provides real-time data on competitors, footfall proxies, and catchment areas (Isochrones). "
+        "**NOTE: The output of this tool is ALREADY provided to you in the 'Context Data' section below. Use it as your source of truth.**\n"
+        "2. NEVER hallucinate data. If you don't have the specific numbers for a location, state that you are analyzing the provided data.\n\n"
+        "**Response Style:**\n"
+        "- **Vibe:** Professional, Insightful, Direct.\n"
+        "- **Structure:**\n"
+        "  1. **The Verdict:** Start with a clear \"High Potential\" or \"High Risk\" assessment.\n"
+        "  2. **The Data:** Cite the specific numbers from the tool (e.g., \"Saturation is high at 12 cafes/sq km\").\n"
+        "  3. **The Advice:** Give a strategic recommendation (e.g., \"Since saturation is high, focus on a niche like Vegan Tea rather than a generic stall.\").\n\n"
+        "**Context:**\n"
+        "- \"Isochrone\" means the drive-time polygon (not radius).\n"
+        "- \"Digipin\" is the precise location code.\n"
     )
 
     analysis_data = context.get('analysis_data') or {}
@@ -154,12 +194,41 @@ def answer_question(message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         except Exception:
             analysis_data = {}
 
-    # Web snippets
+    # --- MANDATORY WEB SEARCH STRATEGY ---
     web_snips = []
-    try:
-        web_snips = _search_web(message, max_results=3)
-    except Exception:
-        web_snips = []
+    
+    # 1. Search for the location context (if address is available)
+    address = analysis_data.get('location', {}).get('address', {}).get('formatted_address')
+    if address:
+        # Extract a shorter location name for better search (e.g., "Indiranagar, Bangalore")
+        # Simple heuristic: take first 2 parts of address
+        loc_query = ",".join(address.split(',')[:2])
+        print(f"🔍 AI performing mandatory context search for: {loc_query}")
+        try:
+            context_snips = _search_web(f"{loc_query} area guide market analysis {business_type}", max_results=2)
+            web_snips.extend(context_snips)
+        except Exception as e:
+            print(f"⚠️ Context search failed: {e}")
+
+    # 2. Search for top competitor if available
+    competitors = analysis_data.get('competitors', {}).get('nearby', [])
+    if competitors:
+        top_comp = competitors[0].get('name')
+        if top_comp and top_comp != "Unknown":
+            print(f"🔍 AI performing competitor search for: {top_comp}")
+            try:
+                comp_snips = _search_web(f"{top_comp} {address} reviews rating", max_results=2)
+                web_snips.extend(comp_snips)
+            except Exception as e:
+                print(f"⚠️ Competitor search failed: {e}")
+                
+    # 3. Search for user query if it's specific
+    if len(message) > 5:
+         try:
+            query_snips = _search_web(message, max_results=2)
+            web_snips.extend(query_snips)
+         except Exception:
+             pass
 
     # Local docs from repo root
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -191,7 +260,7 @@ def answer_question(message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         # Our 'messages' variable is already in that format: [{'role': 'system', ...}, {'role': 'user', ...}]
         
         response_text = ""
-        for token in client.chat_completion(messages, max_tokens=600, stream=True):
+        for token in client.chat_completion(messages, max_tokens=800, stream=True):
             if token.choices and token.choices[0].delta.content:
                 response_text += token.choices[0].delta.content
 
