@@ -53,7 +53,7 @@ export default function Header() {
             <a href="#" className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all duration-200">
               Analytics
             </a>
-            <a href="#" className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all duration-200">
+            <a href="https://apihub.latlong.ai/Documentation" target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all duration-200">
               API Docs
             </a>
           </nav>
