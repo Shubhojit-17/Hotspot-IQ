@@ -63,12 +63,90 @@ class LatLongService:
             print(f"LatLong API Error: {str(e)}")
             return {'success': False, 'error': str(e)}
     
+    # Major areas database for Indian cities
+    MAJOR_AREAS = {
+        'bengaluru': [
+            'Indiranagar', 'Koramangala', 'Whitefield', 'Electronic City', 'Jayanagar',
+            'Malleshwaram', 'HSR Layout', 'BTM Layout', 'Marathahalli', 'Banashankari',
+            'Rajajinagar', 'Basavanagudi', 'JP Nagar', 'Hebbal', 'Yelahanka',
+            'Sadashivanagar', 'Bannerghatta Road', 'Sarjapur Road', 'MG Road', 
+            'Brigade Road', 'Commercial Street', 'Cunningham Road', 'Lavelle Road',
+            'Residency Road', 'Richmond Road', 'Vittal Mallya Road', 'Kasturba Road',
+            'Shivajinagar', 'Majestic', 'KR Market', 'Chickpet', 'Avenue Road',
+            'Frazer Town', 'Cox Town', 'Benson Town', 'RT Nagar', 'Sanjaynagar',
+            'Vijayanagar', 'Nagarbhavi', 'Basaveshwaranagar', 'Yeshwanthpur',
+            'Peenya', 'Tumkur Road', 'Mysore Road', 'Kanakapura Road', 'Hosur Road',
+            'Old Airport Road', 'Outer Ring Road', 'Bellary Road', 'Hennur',
+            'Kalyan Nagar', 'Kammanahalli', 'HRBR Layout', 'Ramamurthy Nagar',
+            'KR Puram', 'Mahadevapura', 'Bellandur', 'Varthur', 'Brookefield',
+            'ITPL', 'Domlur', 'HAL', 'Old Madras Road', 'CV Raman Nagar',
+            'Ulsoor', 'MG Road', 'Trinity', 'Ashok Nagar', 'Wilson Garden',
+        ],
+        'bangalore': [  # Alias
+            'Indiranagar', 'Koramangala', 'Whitefield', 'Electronic City', 'Jayanagar',
+            'Malleshwaram', 'HSR Layout', 'BTM Layout', 'Marathahalli', 'Banashankari',
+            'Rajajinagar', 'Basavanagudi', 'JP Nagar', 'Hebbal', 'Yelahanka',
+        ],
+        'mumbai': [
+            'Bandra', 'Andheri', 'Juhu', 'Powai', 'Lower Parel', 'Worli', 'Dadar',
+            'Colaba', 'Marine Drive', 'Nariman Point', 'Fort', 'Churchgate',
+            'Santacruz', 'Khar', 'Malad', 'Goregaon', 'Kandivali', 'Borivali',
+            'Thane', 'Navi Mumbai', 'Vashi', 'Kharghar', 'Panvel', 'Airoli',
+            'BKC', 'Kurla', 'Ghatkopar', 'Mulund', 'Vikhroli', 'Chembur',
+            'Matunga', 'Sion', 'Wadala', 'Parel', 'Lalbaug', 'Prabhadevi',
+            'Mahim', 'Dharavi', 'Versova', 'Lokhandwala', 'Oshiwara', 'DN Nagar',
+        ],
+        'delhi': [
+            'Connaught Place', 'Karol Bagh', 'Chandni Chowk', 'Saket', 'Hauz Khas',
+            'Greater Kailash', 'Lajpat Nagar', 'Defence Colony', 'South Extension',
+            'Vasant Kunj', 'Vasant Vihar', 'Dwarka', 'Janakpuri', 'Rajouri Garden',
+            'Punjabi Bagh', 'Pitampura', 'Rohini', 'Model Town', 'Civil Lines',
+            'Nehru Place', 'Okhla', 'Sarita Vihar', 'Jasola', 'Kalkaji',
+            'Green Park', 'Safdarjung', 'Jor Bagh', 'Khan Market', 'Lodhi Colony',
+            'Mayur Vihar', 'Preet Vihar', 'Laxmi Nagar', 'Vivek Vihar',
+            'Paharganj', 'Daryaganj', 'ITO', 'Mandi House', 'Rajiv Chowk',
+        ],
+        'hyderabad': [
+            'Banjara Hills', 'Jubilee Hills', 'Hitech City', 'Gachibowli', 'Madhapur',
+            'Kondapur', 'Kukatpally', 'Miyapur', 'Secunderabad', 'Ameerpet',
+            'Begumpet', 'Somajiguda', 'Punjagutta', 'Abids', 'Nampally',
+            'Charminar', 'Koti', 'Dilsukhnagar', 'LB Nagar', 'Uppal',
+            'Manikonda', 'Tolichowki', 'Mehdipatnam', 'Attapur', 'Rajendranagar',
+            'Film Nagar', 'Yousufguda', 'SR Nagar', 'Sanath Nagar', 'Erragadda',
+        ],
+        'chennai': [
+            'T Nagar', 'Anna Nagar', 'Adyar', 'Velachery', 'OMR', 'ECR',
+            'Nungambakkam', 'Kodambakkam', 'Mylapore', 'Alwarpet', 'RA Puram',
+            'Besant Nagar', 'Thiruvanmiyur', 'Sholinganallur', 'Porur', 'Vadapalani',
+            'Ashok Nagar', 'KK Nagar', 'West Mambalam', 'Saidapet', 'Guindy',
+            'Mount Road', 'Egmore', 'Kilpauk', 'Chetpet', 'Royapettah',
+            'Teynampet', 'Thousand Lights', 'Triplicane', 'Marina Beach', 'George Town',
+        ],
+        'pune': [
+            'Koregaon Park', 'Kalyani Nagar', 'Viman Nagar', 'Kharadi', 'Magarpatta',
+            'Hadapsar', 'Wakad', 'Hinjewadi', 'Baner', 'Aundh', 'Pashan',
+            'Shivajinagar', 'FC Road', 'JM Road', 'MG Road', 'Camp', 'Deccan',
+            'Kothrud', 'Karve Nagar', 'Warje', 'Sinhagad Road', 'Bibwewadi',
+            'Katraj', 'Kondhwa', 'NIBM', 'Undri', 'Mohammadwadi', 'Wanowrie',
+        ],
+        'kolkata': [
+            'Park Street', 'Salt Lake', 'New Town', 'Rajarhat', 'EM Bypass',
+            'Ballygunge', 'Alipore', 'Behala', 'Tollygunge', 'Jadavpur',
+            'Gariahat', 'Rashbehari', 'Dharmatala', 'Esplanade', 'BBD Bagh',
+            'Howrah', 'Sealdah', 'College Street', 'Shyambazar', 'Hatibagan',
+            'Dumdum', 'Barasat', 'Barrackpore', 'Garia', 'Narendrapur',
+        ],
+        'ahmedabad': [
+            'CG Road', 'SG Highway', 'Ashram Road', 'Navrangpura', 'Vastrapur',
+            'Bodakdev', 'Satellite', 'Prahlad Nagar', 'Thaltej', 'Gurukul',
+            'Paldi', 'Ellis Bridge', 'Law Garden', 'Mithakhali', 'Stadium',
+            'Maninagar', 'Ghatlodia', 'Chandkheda', 'Motera', 'Sabarmati',
+        ],
+    }
+    
     def autocomplete(self, query: str, lat: float = None, lng: float = None, limit: int = 10) -> List[Dict]:
         """
-        Get location suggestions for autocomplete.
-        
-        LatLong API: GET /v4/autocomplete.json
-        Response: { data: [{ name: "...", geoid: 123 }] }
+        Get location suggestions for autocomplete - prioritizes major areas.
         
         Args:
             query: Search text entered by user
@@ -82,38 +160,117 @@ class LatLongService:
         if len(query) < 2:
             return []
         
+        query_lower = query.lower().strip()
+        suggestions = []
+        seen_areas = set()  # Track seen area names to avoid duplicates
+        
+        # First, check if query matches any major areas from our curated list
+        for city, areas in self.MAJOR_AREAS.items():
+            # Skip alias entries (like 'bangalore' which duplicates 'bengaluru')
+            if city == 'bangalore':
+                continue
+                
+            for area in areas:
+                area_lower = area.lower()
+                if area_lower.startswith(query_lower) or query_lower in area_lower:
+                    # Determine city name for display
+                    city_display = city.title()
+                    if city == 'bengaluru':
+                        city_display = 'Bengaluru'
+                    
+                    # Create unique key to avoid duplicates
+                    area_key = f"{area_lower}_{city}"
+                    if area_key in seen_areas:
+                        continue
+                    seen_areas.add(area_key)
+                    
+                    suggestions.append({
+                        'place_id': f"major_{city}_{area.replace(' ', '_').lower()}",
+                        'geoid': None,
+                        'name': f"{area}, {city_display}",
+                        'is_area': True,
+                        'is_major': True,
+                        'lat': None,
+                        'lng': None
+                    })
+        
+        # Sort by relevance (exact prefix match first)
+        suggestions.sort(key=lambda x: (
+            0 if x['name'].lower().startswith(query_lower) else 1,
+            len(x['name'])
+        ))
+        
+        # Limit major area suggestions
+        suggestions = suggestions[:limit]
+        
+        # If we have enough major area matches, return them
+        if len(suggestions) >= 5:
+            return suggestions[:limit]
+        
+        # Otherwise, also fetch from API to supplement
         params = {
             'query': query,
             'limit': min(limit, 20)
         }
         
-        # Add location biasing if provided
         if lat is not None and lng is not None:
             params['lat'] = lat
             params['long'] = lng
         
         result = self._make_request('GET', 'v4/autocomplete', params=params)
         
-        if not result.get('success'):
-            return []
+        if result.get('success'):
+            data = result.get('data', [])
+            
+            # Keywords that indicate POI/store rather than area
+            POI_KEYWORDS = [
+                'station', 'stop', 'shop', 'store', 'hotel', 'restaurant', 'cafe', 
+                'hospital', 'clinic', 'school', 'college', 'temple', 'church', 'mosque',
+                'mall', 'market', 'bank', 'atm', 'petrol', 'pump', 'bunk', 'park',
+                'playground', 'water tank', 'office', 'building', 'tower', 'complex',
+                'apartment', 'residency', 'villa', 'gym', 'fitness', 'salon', 'spa',
+                'cinema', 'theater', 'theatre', 'pub', 'bar', 'lounge', 'club',
+                'satellite town', 'layout', 'phase', 'block', 'sector',
+            ]
+            
+            # Get existing names to avoid duplicates
+            existing_names = {s['name'].lower() for s in suggestions}
+            
+            if isinstance(data, list):
+                for item in data:
+                    name = item.get('name', '')
+                    name_lower = name.lower()
+                    
+                    # Skip if duplicate
+                    if any(name_lower.startswith(existing.split(',')[0]) for existing in existing_names):
+                        continue
+                    
+                    # Skip POIs
+                    if any(kw in name_lower for kw in POI_KEYWORDS):
+                        continue
+                    
+                    # Check if this looks like a major area (first part is clean)
+                    parts = name.split(',')
+                    first_part = parts[0].strip()
+                    
+                    # Skip if first part has too many words (likely a specific place)
+                    if len(first_part.split()) > 3:
+                        continue
+                    
+                    suggestions.append({
+                        'place_id': str(item.get('geoid', '')),
+                        'geoid': item.get('geoid'),
+                        'name': name,
+                        'is_area': True,
+                        'is_major': False,
+                        'lat': None,
+                        'lng': None
+                    })
+                    
+                    if len(suggestions) >= limit:
+                        break
         
-        # Parse and format suggestions from LatLong response
-        # Response format: [{ name: "Delhi, South West Delhi, Delhi", geoid: 188443 }]
-        suggestions = []
-        data = result.get('data', [])
-        
-        if isinstance(data, list):
-            for item in data:
-                suggestions.append({
-                    'place_id': str(item.get('geoid', '')),
-                    'geoid': item.get('geoid'),
-                    'name': item.get('name', ''),
-                    # Note: Autocomplete doesn't return lat/lng, need geocoding
-                    'lat': None,
-                    'lng': None
-                })
-        
-        return suggestions
+        return suggestions[:limit]
     
     def geocode(self, address: str) -> Dict:
         """

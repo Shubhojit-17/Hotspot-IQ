@@ -62,7 +62,9 @@ export default function App() {
           lat: geocoded.lat,
           lng: geocoded.lng,
           address: geocoded.address,
-          geoid: location.geoid
+          geoid: location.geoid,
+          is_major: location.is_major || false,  // Preserve major area flag
+          is_area: location.is_area || false,
         });
       } else {
         console.error('Geocoding returned no coordinates');

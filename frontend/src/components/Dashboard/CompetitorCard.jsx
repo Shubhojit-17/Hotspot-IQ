@@ -4,8 +4,12 @@
  */
 
 export default function CompetitorCard({ competitors = [], isLoading }) {
+  // Debug: log what we receive
+  console.log('🏪 CompetitorCard received:', competitors);
+  
   // Ensure competitors is an array
   const competitorList = Array.isArray(competitors) ? competitors : [];
+  console.log('🏪 competitorList after check:', competitorList);
   
   // Sort by distance (closest first)
   const sortedCompetitors = [...competitorList].sort((a, b) => 

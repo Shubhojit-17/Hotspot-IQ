@@ -6,9 +6,39 @@ Handles location analysis, isochrone, and scoring endpoints.
 import re
 from flask import Blueprint, request, jsonify
 from services.latlong_service import latlong_service
+from services.competitor_service import get_competitors_detailed, get_competitor_count
 from utils.score_calculator import analyze_location
 
 analysis_bp = Blueprint('analysis', __name__)
+
+
+# Category detection keywords for landmarks
+LANDMARK_CATEGORY_KEYWORDS = {
+    'metro_station': ['metro', 'subway'],
+    'bus_stop': ['bus stop', 'bus stand', 'bus station'],
+    'railway_station': ['railway', 'train station', 'rail'],
+    'school': ['school', 'vidyalaya', 'vidya'],
+    'college': ['college', 'university', 'institute', 'iit', 'nit'],
+    'hospital': ['hospital', 'medical', 'clinic', 'healthcare'],
+    'mall': ['mall', 'plaza', 'shopping'],
+    'office': ['office', 'corporate', 'tech park', 'business'],
+    'residential': ['apartment', 'residency', 'housing', 'colony'],
+    'temple': ['temple', 'mandir', 'church', 'mosque', 'gurudwara', 'masjid'],
+    'park': ['park', 'garden', 'ground'],
+    'atm': ['atm', 'bank'],
+    'bar': ['bar', 'pub', 'brewery'],
+    'restaurant': ['restaurant', 'dhaba', 'food', 'kitchen', 'cafe', 'diner'],
+    'hotel': ['hotel', 'lodge', 'guest house', 'inn', 'oyo', 'capital o'],
+}
+
+
+def detect_landmark_category(name: str) -> str:
+    """Detect category from landmark name."""
+    name_lower = name.lower()
+    for category, keywords in LANDMARK_CATEGORY_KEYWORDS.items():
+        if any(kw in name_lower for kw in keywords):
+            return category
+    return 'default'
 
 
 def parse_landmarks_from_text(landmark_text, business_type=''):
@@ -90,7 +120,11 @@ def analyze():
     lng = data.get('lng')
     business_type = data.get('business_type', 'other')
     filters = data.get('filters', [])
-    radius = data.get('radius', 1000)
+    is_major_area = data.get('is_major', False)
+    
+    # Use larger radius for major areas (2500m) vs regular locations (1000m)
+    default_radius = 2500 if is_major_area else 1000
+    radius = data.get('radius', default_radius)
     
     if lat is None or lng is None:
         return jsonify({'error': 'lat and lng are required'}), 400
@@ -101,8 +135,8 @@ def analyze():
     # Get reverse geocode for address info (includes landmark text)
     address_info = latlong_service.reverse_geocode(lat, lng)
     
-    # Parse landmarks and competitors from reverse geocode landmark field
-    parsed_landmarks, parsed_competitors = parse_landmarks_from_text(
+    # Parse landmarks from reverse geocode landmark field
+    parsed_landmarks, _ = parse_landmarks_from_text(
         address_info.get('landmark', ''), 
         business_type
     )
@@ -110,40 +144,70 @@ def analyze():
     # Get nearby landmarks with coordinates from Landmarks API
     nearby_landmarks = latlong_service.get_landmarks(lat, lng)
     
-    # Business type keywords to identify competitors (duplicate from parse function for use here)
-    competitor_kw_map = {
-        'cafe': ['cafe', 'coffee', 'tea', 'bakery', 'starbucks', 'barista', 'roasters', 'brew', 'chai'],
-        'restaurant': ['restaurant', 'food', 'kitchen', 'dhaba', 'biryani', 'pizza', 'burger', 'diner', 'sweets', 'corner', 'hotel', 'eatery', 'cuisine', 'tandoor', 'grill', 'chinese', 'mughlai'],
-        'gym': ['gym', 'fitness', 'yoga', 'sports', 'crossfit', 'health club', 'workout'],
-        'pharmacy': ['pharmacy', 'medical', 'chemist', 'medicine', 'drugstore', 'pharma', 'medico'],
-        'salon': ['salon', 'spa', 'beauty', 'hair', 'parlour', 'parlor', 'unisex', 'barber'],
-        'retail': ['store', 'mart', 'shop', 'retail', 'boutique', 'emporium', 'showroom'],
-        'grocery': ['grocery', 'kirana', 'supermarket', 'mart', 'provision', 'general store'],
+    # Get competitors from OpenStreetMap via competitor_service
+    # Map business_type to OSM category
+    osm_category_map = {
+        'cafe': 'cafe',
+        'restaurant': 'restaurant',
+        'gym': 'gym',
+        'pharmacy': 'pharmacy',
+        'salon': 'salon',
+        'retail': 'retail',
+        'grocery': 'supermarket',
     }
-    competitor_keywords = competitor_kw_map.get(business_type, [])
+    osm_category = osm_category_map.get(business_type, business_type)
+    
+    # Fetch competitors from OpenStreetMap
+    osm_competitors = []
+    try:
+        osm_competitors = get_competitors_detailed(lat, lng, radius, osm_category)
+    except Exception as e:
+        print(f"Error fetching OSM competitors: {e}")
     
     # Combine all landmarks - start with parsed landmarks
-    all_landmarks = parsed_landmarks.copy()
-    existing_names = {l['name'].lower() for l in all_landmarks}
+    all_landmarks = []
+    existing_names = set()
     
-    # Add landmarks from Landmarks API (avoid duplicates by name)
-    # Also check if they are competitors
-    for lm in nearby_landmarks:
+    # Add parsed landmarks with detected categories
+    for lm in parsed_landmarks:
         lm_name = lm.get('name', '')
         if lm_name.lower() not in existing_names:
-            # Check if this landmark is a competitor
-            is_competitor = any(kw in lm_name.lower() for kw in competitor_keywords)
-            lm['is_competitor'] = is_competitor
-            if is_competitor:
-                lm['category'] = business_type
+            # Detect category from name
+            lm['category'] = detect_landmark_category(lm_name)
             all_landmarks.append(lm)
             existing_names.add(lm_name.lower())
     
-    # Collect all competitors (from parsed text AND from landmarks API)
-    all_competitors = parsed_competitors.copy()
-    for lm in all_landmarks:
-        if lm.get('is_competitor', False) and lm not in all_competitors:
-            all_competitors.append(lm)
+    # Add landmarks from Landmarks API with detected categories
+    for lm in nearby_landmarks:
+        lm_name = lm.get('name', '')
+        if lm_name.lower() not in existing_names:
+            lm['category'] = detect_landmark_category(lm_name)
+            all_landmarks.append(lm)
+            existing_names.add(lm_name.lower())
+    
+    # Format competitors from OSM with distance calculation
+    all_competitors = []
+    for comp in osm_competitors:
+        # Calculate approximate distance in meters
+        from math import radians, sin, cos, sqrt, atan2
+        R = 6371000  # Earth's radius in meters
+        lat1, lon1 = radians(lat), radians(lng)
+        lat2, lon2 = radians(comp.get('lat', lat)), radians(comp.get('lng', lng))
+        dlat, dlon = lat2 - lat1, lon2 - lon1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        distance = int(R * 2 * atan2(sqrt(a), sqrt(1-a)))
+        
+        all_competitors.append({
+            'name': comp.get('name', 'Unknown'),
+            'category': business_type,
+            'lat': comp.get('lat'),
+            'lng': comp.get('lng'),
+            'distance': distance,
+            'is_competitor': True
+        })
+    
+    # Sort competitors by distance
+    all_competitors.sort(key=lambda x: x.get('distance', 9999))
     
     # Get Digipin
     digipin_info = latlong_service.get_digipin(lat, lng)
@@ -179,12 +243,12 @@ def analyze():
         'breakdown': analysis_result['breakdown'],
         'competitors': {
             'count': len(all_competitors),
-            'nearby': all_competitors[:10]
+            'nearby': all_competitors[:20]  # Return up to 20 competitors
         },
         'landmarks': {
             'total': len(all_landmarks),
             'by_category': {'nearby': len(all_landmarks)},
-            'list': all_landmarks[:10]
+            'list': all_landmarks  # Return all landmarks
         },
         'footfall_proxy': 'high' if analysis_result['breakdown']['footfall_proxy'] > 60 else 'medium' if analysis_result['breakdown']['footfall_proxy'] > 30 else 'low',
         'recommendation': analysis_result['interpretation']['recommendation']

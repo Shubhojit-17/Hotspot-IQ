@@ -141,14 +141,17 @@ export default function SearchBar({ onLocationSelect, disabled }) {
   return (
     <div className="space-y-2 relative z-10">
       <label className="block text-sm font-medium text-slate-400">
-        Step 3: Where do you want to open?
+        Step 3: Which area to analyze?
       </label>
+      <p className="text-xs text-slate-500 -mt-1">
+        Search for a locality, neighborhood, or city
+      </p>
 
       <div className="relative">
         {/* Search Input */}
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            🔍
+            🏘️
           </span>
           <input
             ref={inputRef}
@@ -158,7 +161,7 @@ export default function SearchBar({ onLocationSelect, disabled }) {
             onKeyDown={handleKeyDown}
             onFocus={() => suggestions.length > 0 && setIsOpen(true)}
             disabled={disabled}
-            placeholder="Search location, area, or pincode..."
+            placeholder="Search: Koramangala, Indiranagar, Bandra..."
             className={`
               w-full glass-input pl-10 pr-10
               ${isOpen ? 'border-primary-glow shadow-glow-primary' : ''}
@@ -205,13 +208,21 @@ export default function SearchBar({ onLocationSelect, disabled }) {
                       ${selectedIndex === index ? 'bg-surface-secondary' : ''}
                     `}
                   >
-                    <span className="text-slate-400 mt-0.5">📍</span>
+                    {/* Show different icon for major areas vs others */}
+                    <span className="mt-0.5">
+                      {suggestion.is_major ? '⭐' : suggestion.is_area ? '🏘️' : '📍'}
+                    </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-slate-200 truncate">{suggestion.name}</p>
-                      {suggestion.lat && suggestion.lng && (
-                        <p className="text-xs text-slate-500 font-mono mt-0.5">
-                          {suggestion.lat.toFixed(4)}, {suggestion.lng.toFixed(4)}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-slate-200 truncate">{suggestion.name}</p>
+                        {suggestion.is_major && (
+                          <span className="text-[10px] bg-primary-glow/20 text-primary-glow px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                            Major Area
+                          </span>
+                        )}
+                      </div>
+                      {suggestion.is_area && !suggestion.is_major && (
+                        <p className="text-xs text-slate-500 mt-0.5">Locality</p>
                       )}
                     </div>
                   </button>
@@ -224,16 +235,21 @@ export default function SearchBar({ onLocationSelect, disabled }) {
         {/* No results message */}
         {isOpen && query.length >= 2 && suggestions.length === 0 && !isLoading && (
           <div className="absolute z-50 w-full mt-2 bg-canvas-base border border-surface-border rounded-lg shadow-glass p-4 text-center text-slate-400 animate-fade-in">
-            No locations found for "{query}"
+            <p>No locations found for "{query}"</p>
+            <p className="text-xs mt-1">Try a different area name or click on the map</p>
           </div>
         )}
       </div>
 
-      {/* Hint */}
-      {disabled && (
+      {/* Hints */}
+      {disabled ? (
         <p className="text-xs text-slate-500 flex items-center gap-1">
           <span className="text-warning-glow">⚠️</span>
           Select a business type first
+        </p>
+      ) : (
+        <p className="text-xs text-slate-500">
+          💡 You can also click anywhere on the map to select a location
         </p>
       )}
     </div>

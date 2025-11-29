@@ -86,15 +86,17 @@ export const geocodeLocation = async (address) => {
  * @param {number} lng - Longitude
  * @param {string} businessType - Type of business
  * @param {Array<string>} filters - Proximity filters
+ * @param {boolean} isMajor - Whether this is a major area (larger radius)
  * @returns {Promise<Object>} Analysis results
  */
-export const analyzeLocation = async (lat, lng, businessType, filters = []) => {
+export const analyzeLocation = async (lat, lng, businessType, filters = [], isMajor = false) => {
   try {
     const response = await api.post('/analyze', {
       lat,
       lng,
       business_type: businessType,
       filters,
+      is_major: isMajor,
     });
     return response.data;
   } catch (error) {

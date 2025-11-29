@@ -33,7 +33,7 @@ export default function AnalysisPanel({
             </h2>
             {analysis?.location && (
               <p className="text-sm text-slate-400 truncate max-w-[280px]">
-                {analysis.location.name}
+                {analysis.location.name || analysis.address?.formatted_address || `${analysis.location.lat?.toFixed(4)}, ${analysis.location.lng?.toFixed(4)}`}
               </p>
             )}
           </div>
@@ -49,6 +49,16 @@ export default function AnalysisPanel({
         
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Debug output */}
+          {!isLoading && analysis && (
+            <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-3 text-xs text-yellow-200">
+              <strong>Debug:</strong> 
+              Competitors: {analysis?.competitors?.length || 0} | 
+              Landmarks: {analysis?.landmarks?.length || 0} | 
+              Score: {analysis?.score}
+            </div>
+          )}
+          
           {/* Opportunity Score */}
           <ScoreCard 
             score={analysis?.score}

@@ -63,13 +63,19 @@ export default function useAnalysis() {
     setError(null);
 
     try {
+      // Determine isochrone radius based on whether it's a major area
+      // Major areas like Koramangala, Indiranagar need larger coverage (2.5km)
+      // Regular locations use smaller radius (1.5km)
+      const isMajorArea = location.is_major || false;
+      const isochroneRadius = isMajorArea ? 2.5 : 1.5;
+      
       // Run analysis and isochrone requests in parallel
       const [analysisData, isochroneData] = await Promise.all([
-        analyzeLocation(location.lat, location.lng, businessType, filters),
-        getIsochrone(location.lat, location.lng, 1.0).catch((err) => {
+        analyzeLocation(location.lat, location.lng, businessType, filters, isMajorArea),
+        getIsochrone(location.lat, location.lng, isochroneRadius).catch((err) => {
           console.warn('Isochrone fetch failed:', err);
           return null;
-        }), // 1km radius isochrone
+        }),
       ]);
 
       // Try to get DIGIPIN (may not be available)
@@ -81,6 +87,9 @@ export default function useAnalysis() {
         // DIGIPIN is optional, ignore errors
       }
 
+      // Log raw response for debugging
+      console.log('📊 Raw API Response:', JSON.stringify(analysisData, null, 2));
+      
       // Normalize the API response to match frontend expectations
       const normalizedAnalysis = {
         score: analysisData.opportunity_score || 0,
@@ -105,6 +114,13 @@ export default function useAnalysis() {
         address: analysisData.location?.address || {},
         business_type: analysisData.business_type || businessType,
       };
+      
+      // Log normalized data for debugging
+      console.log('📊 Normalized Analysis:', {
+        competitors: normalizedAnalysis.competitors,
+        landmarks: normalizedAnalysis.landmarks,
+        score: normalizedAnalysis.score
+      });
 
       setAnalysis(normalizedAnalysis);
       setIsochrone(isochroneData);
