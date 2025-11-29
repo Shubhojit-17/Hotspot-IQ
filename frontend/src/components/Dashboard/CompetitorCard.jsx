@@ -3,18 +3,22 @@
  * Displays nearby competitors with distance information
  */
 
+import { useState } from 'react';
+
 export default function CompetitorCard({ competitors = [], isLoading }) {
-  // Debug: log what we receive
-  console.log('🏪 CompetitorCard received:', competitors);
+  const [showAll, setShowAll] = useState(false);
   
   // Ensure competitors is an array
   const competitorList = Array.isArray(competitors) ? competitors : [];
-  console.log('🏪 competitorList after check:', competitorList);
   
   // Sort by distance (closest first)
   const sortedCompetitors = [...competitorList].sort((a, b) => 
     (a.distance || 9999) - (b.distance || 9999)
   );
+  
+  // Show first 20 or all based on toggle
+  const displayCount = showAll ? sortedCompetitors.length : Math.min(20, sortedCompetitors.length);
+  const displayedCompetitors = sortedCompetitors.slice(0, displayCount);
 
   const getDistanceColor = (distance) => {
     if (distance <= 200) return 'text-destructive-glow';
@@ -62,36 +66,44 @@ export default function CompetitorCard({ competitors = [], isLoading }) {
           <p className="text-slate-500 text-xs mt-1">Great opportunity zone</p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-64 overflow-y-auto">
-          {sortedCompetitors.slice(0, 10).map((competitor, index) => (
-            <div 
-              key={index}
-              className="flex items-start gap-3 p-2 rounded-lg hover:bg-surface-secondary transition-colors"
-            >
-              {/* Index badge */}
-              <div className="w-6 h-6 bg-destructive-glow/20 text-destructive-glow rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">
-                {index + 1}
+        <div className="space-y-2">
+          <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+            {displayedCompetitors.map((competitor, index) => (
+              <div 
+                key={index}
+                className="flex items-start gap-3 p-2 rounded-lg hover:bg-surface-secondary transition-colors"
+              >
+                {/* Index badge */}
+                <div className="w-6 h-6 bg-destructive-glow/20 text-destructive-glow rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">
+                  {index + 1}
+                </div>
+                
+                {/* Competitor info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-slate-200 text-sm truncate">{competitor.name}</p>
+                  <p className="text-slate-500 text-xs truncate">{competitor.category}</p>
+                </div>
+                
+                {/* Distance */}
+                {competitor.distance !== undefined && (
+                  <span className={`text-xs font-mono flex-shrink-0 ${getDistanceColor(competitor.distance)}`}>
+                    {getDistanceLabel(competitor.distance)}
+                  </span>
+                )}
               </div>
-              
-              {/* Competitor info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-slate-200 text-sm truncate">{competitor.name}</p>
-                <p className="text-slate-500 text-xs truncate">{competitor.category}</p>
-              </div>
-              
-              {/* Distance */}
-              {competitor.distance !== undefined && (
-                <span className={`text-xs font-mono flex-shrink-0 ${getDistanceColor(competitor.distance)}`}>
-                  {getDistanceLabel(competitor.distance)}
-                </span>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
           
-          {competitors.length > 10 && (
-            <p className="text-center text-xs text-slate-500 pt-2">
-              +{competitors.length - 10} more competitors
-            </p>
+          {/* Show more/less toggle */}
+          {sortedCompetitors.length > 20 && (
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="w-full text-center text-xs text-primary-glow hover:text-primary-glow/80 py-2 transition-colors"
+            >
+              {showAll 
+                ? `▲ Show less` 
+                : `▼ Show all ${sortedCompetitors.length} competitors`}
+            </button>
           )}
         </div>
       )}

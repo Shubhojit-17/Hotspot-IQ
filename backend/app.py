@@ -14,13 +14,17 @@ def create_app():
     
     app = Flask(__name__)
     
-    # Configure CORS - allow both 5173 and 5174 (Vite may use alternate ports)
+    # Configure CORS - allow multiple Vite dev server ports
     CORS(app, origins=[
         Config.FRONTEND_URL, 
         "http://localhost:5173", 
         "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
         "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174"
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
+        "http://127.0.0.1:5176"
     ])
     
     # Register blueprints

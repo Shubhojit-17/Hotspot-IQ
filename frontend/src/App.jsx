@@ -12,7 +12,7 @@ import { Header } from './components/Layout';
 import { BusinessTypeSelector, ProximityFilters } from './components/Filters';
 import { SearchBar } from './components/Search';
 import { MapView } from './components/Map';
-import { AnalysisPanel } from './components/Dashboard';
+import { AnalysisPanel, LoadingProgress } from './components/Dashboard';
 
 // Hooks
 import { useAnalysis } from './hooks';
@@ -36,7 +36,8 @@ export default function App() {
     analysis, 
     isochrone, 
     isLoading, 
-    error, 
+    error,
+    loadingStatus,
     analyze, 
     clearAnalysis 
   } = useAnalysis();
@@ -102,6 +103,15 @@ export default function App() {
     setIsPanelOpen(true);
   }, [selectedLocation, businessType, selectedFilters, analyze]);
 
+  // Handle viewing a recommended spot on the map
+  const handleViewSpot = useCallback((spot) => {
+    // This will cause the map to pan to the spot location
+    // We can show a temporary marker or highlight
+    console.log('View spot:', spot);
+    // The spot marker is already on the map, just close the panel so user can see it
+    setIsPanelOpen(false);
+  }, []);
+
   // Check if ready to analyze - need coordinates
   const canAnalyze = businessType && selectedLocation && selectedLocation.lat != null && selectedLocation.lng != null && !isLoading && !isGeocoding;
 
@@ -115,10 +125,12 @@ export default function App() {
         {/* Map Layer */}
         <MapView
           selectedLocation={selectedLocation}
-          competitors={analysis?.competitors || []}
-          landmarks={analysis?.landmarks || []}
+          competitors={analysis?.competitors?.nearby || []}
+          landmarks={analysis?.landmarks?.list || []}
+          recommendedSpots={analysis?.recommended_spots || []}
           isochrone={isochrone}
           onMapClick={handleMapClick}
+          onSpotClick={handleViewSpot}
         />
 
         {/* Control Panel - Left Side */}
@@ -183,6 +195,11 @@ export default function App() {
               </button>
             )}
 
+            {/* Loading Progress Indicator */}
+            {(isLoading || loadingStatus.step === 'complete') && (
+              <LoadingProgress status={loadingStatus} isLoading={isLoading} />
+            )}
+
             {/* Error message */}
             {error && (
               <div className="glass-panel p-4 border-destructive-glow/50 bg-destructive-glow/10">
@@ -203,12 +220,12 @@ export default function App() {
               className="glass-panel p-4 hover:bg-surface-elevated transition-colors cursor-pointer group"
             >
               <div className="flex items-center gap-4">
-                {/* Score preview */}
+                {/* Recommended spots preview */}
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-primary-glow">
-                    {analysis.score || '—'}
+                  <p className="text-3xl font-bold text-emerald-400">
+                    {analysis.recommended_spots?.length || 0}
                   </p>
-                  <p className="text-xs text-slate-500">Score</p>
+                  <p className="text-xs text-slate-500">Spots Found</p>
                 </div>
                 
                 <div className="w-px h-12 bg-surface-border" />
@@ -216,10 +233,10 @@ export default function App() {
                 {/* Stats preview */}
                 <div className="text-left">
                   <p className="text-sm text-slate-300">
-                    <span className="text-destructive-glow font-medium">{analysis.competitors?.length || 0}</span> competitors
+                    <span className="text-destructive-glow font-medium">{analysis.competitors?.count || 0}</span> competitors
                   </p>
                   <p className="text-sm text-slate-300">
-                    <span className="text-accent-glow font-medium">{analysis.landmarks?.length || 0}</span> landmarks
+                    <span className="text-accent-glow font-medium">{analysis.landmarks?.total || 0}</span> landmarks
                   </p>
                 </div>
                 
@@ -241,6 +258,7 @@ export default function App() {
         isLoading={isLoading}
         isOpen={isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
+        onViewSpot={handleViewSpot}
       />
     </div>
   );

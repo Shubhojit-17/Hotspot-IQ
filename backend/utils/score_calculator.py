@@ -1,10 +1,220 @@
 """
-Hotspot IQ - Opportunity Score Calculator
-Implements the proprietary scoring algorithm for location analysis.
+Hotspot IQ - Location Analysis & Recommended Spots Calculator
+Finds optimal business locations based on competitor density and landmark proximity.
 """
 
-from typing import Dict, List
+import math
+from typing import Dict, List, Tuple
 from config import LANDMARK_WEIGHTS
+
+
+def haversine_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Calculate distance between two points in meters."""
+    R = 6371000  # Earth's radius in meters
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lng2 - lng1)
+    a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+
+def calculate_grid_scores(
+    center_lat: float,
+    center_lng: float,
+    radius: float,
+    competitors: List[Dict],
+    landmarks: List[Dict],
+    grid_size: int = 10
+) -> List[Dict]:
+    """
+    Analyze the area using a grid and calculate opportunity score for each cell.
+    
+    Returns a list of grid cells with their scores, sorted by opportunity.
+    """
+    # Convert radius to lat/lng offsets
+    lat_offset_per_m = 1 / 111000
+    lng_offset_per_m = 1 / (111000 * math.cos(math.radians(center_lat)))
+    
+    grid_cells = []
+    cell_size = (2 * radius) / grid_size  # Size of each cell in meters
+    
+    for row in range(grid_size):
+        for col in range(grid_size):
+            # Calculate cell center coordinates
+            cell_lat = center_lat + ((row - grid_size/2 + 0.5) * cell_size * lat_offset_per_m)
+            cell_lng = center_lng + ((col - grid_size/2 + 0.5) * cell_size * lng_offset_per_m)
+            
+            # Check if cell is within the circular radius
+            dist_from_center = haversine_distance(center_lat, center_lng, cell_lat, cell_lng)
+            if dist_from_center > radius:
+                continue
+            
+            # Count competitors within proximity of this cell (300m radius)
+            nearby_competitors = 0
+            min_competitor_dist = float('inf')
+            for comp in competitors:
+                comp_dist = haversine_distance(cell_lat, cell_lng, comp.get('lat', 0), comp.get('lng', 0))
+                if comp_dist < 300:
+                    nearby_competitors += 1
+                if comp_dist < min_competitor_dist:
+                    min_competitor_dist = comp_dist
+            
+            # Count landmarks within proximity (500m radius) and calculate footfall score
+            nearby_landmarks = []
+            footfall_score = 0
+            for lm in landmarks:
+                lm_dist = haversine_distance(cell_lat, cell_lng, lm.get('lat', 0), lm.get('lng', 0))
+                if lm_dist < 500:
+                    nearby_landmarks.append(lm)
+                    # Higher value for closer landmarks
+                    proximity_bonus = max(0, (500 - lm_dist) / 500)
+                    
+                    # Weight by landmark type
+                    name = lm.get('name', '').lower()
+                    category = lm.get('category', '').lower()
+                    
+                    if any(kw in name or kw in category for kw in ['metro', 'station', 'railway']):
+                        footfall_score += 25 * proximity_bonus
+                    elif any(kw in name or kw in category for kw in ['mall', 'plaza', 'market']):
+                        footfall_score += 20 * proximity_bonus
+                    elif any(kw in name or kw in category for kw in ['hospital', 'medical', 'clinic']):
+                        footfall_score += 15 * proximity_bonus
+                    elif any(kw in name or kw in category for kw in ['school', 'college', 'university']):
+                        footfall_score += 15 * proximity_bonus
+                    elif any(kw in name or kw in category for kw in ['office', 'corporate', 'tech']):
+                        footfall_score += 12 * proximity_bonus
+                    elif any(kw in name or kw in category for kw in ['bank', 'atm']):
+                        footfall_score += 10 * proximity_bonus
+                    else:
+                        footfall_score += 5 * proximity_bonus
+            
+            # Calculate opportunity score: high footfall + low competition = better
+            # Competition penalty: more competitors nearby = lower score
+            competition_penalty = nearby_competitors * 15
+            
+            # Distance bonus: if no competitors very close, that's good
+            distance_bonus = 0
+            if min_competitor_dist > 200:
+                distance_bonus = min(30, (min_competitor_dist - 200) / 10)
+            
+            # Final opportunity score
+            opportunity = max(0, footfall_score + distance_bonus - competition_penalty)
+            
+            grid_cells.append({
+                'lat': cell_lat,
+                'lng': cell_lng,
+                'opportunity_score': round(opportunity, 1),
+                'nearby_competitors': nearby_competitors,
+                'min_competitor_distance': round(min_competitor_dist) if min_competitor_dist != float('inf') else None,
+                'nearby_landmarks': len(nearby_landmarks),
+                'footfall_score': round(footfall_score, 1),
+                'landmark_names': [lm.get('name', '') for lm in nearby_landmarks[:5]]
+            })
+    
+    # Sort by opportunity score (highest first)
+    grid_cells.sort(key=lambda x: x['opportunity_score'], reverse=True)
+    
+    return grid_cells
+
+
+def find_recommended_spots(
+    center_lat: float,
+    center_lng: float,
+    radius: float,
+    competitors: List[Dict],
+    landmarks: List[Dict],
+    max_spots: int = 5
+) -> List[Dict]:
+    """
+    Find the best spots for setting up a business.
+    
+    Returns top spots with explanations.
+    """
+    # Calculate grid scores
+    grid_scores = calculate_grid_scores(
+        center_lat, center_lng, radius, 
+        competitors, landmarks, 
+        grid_size=12  # Higher resolution grid
+    )
+    
+    if not grid_scores:
+        return []
+    
+    # Select top spots that are not too close to each other
+    recommended = []
+    min_spacing = 300  # Minimum distance between recommended spots
+    
+    for cell in grid_scores:
+        if len(recommended) >= max_spots:
+            break
+            
+        # Check if this spot is far enough from already recommended spots
+        too_close = False
+        for existing in recommended:
+            dist = haversine_distance(
+                cell['lat'], cell['lng'],
+                existing['lat'], existing['lng']
+            )
+            if dist < min_spacing:
+                too_close = True
+                break
+        
+        if too_close:
+            continue
+        
+        # Generate reason for recommendation
+        reasons = []
+        
+        if cell['min_competitor_distance'] and cell['min_competitor_distance'] > 300:
+            reasons.append(f"Low competition - nearest competitor {cell['min_competitor_distance']}m away")
+        elif cell['nearby_competitors'] == 0:
+            reasons.append("No direct competitors in this zone")
+        elif cell['nearby_competitors'] <= 2:
+            reasons.append(f"Low competition density ({cell['nearby_competitors']} nearby)")
+        
+        if cell['footfall_score'] >= 30:
+            reasons.append("High footfall area")
+        elif cell['footfall_score'] >= 15:
+            reasons.append("Good footfall potential")
+        
+        if cell['nearby_landmarks'] >= 3:
+            reasons.append(f"Near key landmarks ({cell['nearby_landmarks']} within 500m)")
+        
+        if cell['landmark_names']:
+            top_landmarks = cell['landmark_names'][:3]
+            reasons.append(f"Near: {', '.join(top_landmarks)}")
+        
+        # Determine rating based on score
+        if cell['opportunity_score'] >= 50:
+            rating = 'Excellent'
+            rating_color = 'green'
+        elif cell['opportunity_score'] >= 30:
+            rating = 'Good'
+            rating_color = 'cyan'
+        elif cell['opportunity_score'] >= 15:
+            rating = 'Moderate'
+            rating_color = 'yellow'
+        else:
+            rating = 'Fair'
+            rating_color = 'orange'
+        
+        recommended.append({
+            'lat': round(cell['lat'], 6),
+            'lng': round(cell['lng'], 6),
+            'score': cell['opportunity_score'],
+            'rating': rating,
+            'rating_color': rating_color,
+            'reasons': reasons if reasons else ['Balanced location with growth potential'],
+            'nearby_competitors': cell['nearby_competitors'],
+            'nearby_landmarks': cell['nearby_landmarks'],
+            'min_competitor_distance': cell['min_competitor_distance']
+        })
+    
+    # Number the spots
+    for i, spot in enumerate(recommended, 1):
+        spot['rank'] = i
+    
+    return recommended
 
 
 def calculate_footfall_proxy(landmarks: Dict, competitors: Dict) -> float:

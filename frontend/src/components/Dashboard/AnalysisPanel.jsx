@@ -1,9 +1,9 @@
 /**
  * Analysis Panel Component
- * Combines all score and analysis cards in a slide-out panel
+ * Combines all analysis cards in a slide-out panel
  */
 
-import ScoreCard from './ScoreCard';
+import RecommendedSpotsCard from './RecommendedSpotsCard';
 import CompetitorCard from './CompetitorCard';
 import LandmarksCard from './LandmarksCard';
 
@@ -11,7 +11,8 @@ export default function AnalysisPanel({
   analysis,
   isLoading,
   isOpen,
-  onClose 
+  onClose,
+  onViewSpot 
 }) {
   if (!isOpen) return null;
 
@@ -49,37 +50,57 @@ export default function AnalysisPanel({
         
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Debug output */}
+          {/* Summary stats */}
           {!isLoading && analysis && (
-            <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-3 text-xs text-yellow-200">
-              <strong>Debug:</strong> 
-              Competitors: {analysis?.competitors?.length || 0} | 
-              Landmarks: {analysis?.landmarks?.length || 0} | 
-              Score: {analysis?.score}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="glass-panel p-3 text-center">
+                <div className="text-2xl font-bold text-emerald-400">
+                  {analysis?.recommended_spots?.length || 0}
+                </div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+                  Optimal Spots
+                </div>
+              </div>
+              <div className="glass-panel p-3 text-center">
+                <div className="text-2xl font-bold text-rose-400">
+                  {analysis?.competitors?.count || 0}
+                </div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+                  Competitors
+                </div>
+              </div>
+              <div className="glass-panel p-3 text-center">
+                <div className="text-2xl font-bold text-cyan-400">
+                  {analysis?.landmarks?.total || 0}
+                </div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+                  Landmarks
+                </div>
+              </div>
             </div>
           )}
           
-          {/* Opportunity Score */}
-          <ScoreCard 
-            score={analysis?.score}
-            label={analysis?.interpretation}
+          {/* Recommended Spots - Primary focus */}
+          <RecommendedSpotsCard 
+            spots={analysis?.recommended_spots || []}
             isLoading={isLoading}
+            onViewSpot={onViewSpot}
           />
           
           {/* Competitors */}
           <CompetitorCard 
-            competitors={analysis?.competitors || []}
+            competitors={analysis?.competitors?.nearby || []}
             isLoading={isLoading}
           />
           
           {/* Landmarks */}
           <LandmarksCard 
-            landmarks={analysis?.landmarks || []}
+            landmarks={analysis?.landmarks?.list || []}
             isLoading={isLoading}
           />
           
           {/* DIGIPIN */}
-          {!isLoading && analysis?.digipin && (
+          {!isLoading && analysis?.location?.digipin && (
             <div className="glass-panel p-4">
               <h3 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
                 <span className="text-lg">📮</span>
@@ -87,24 +108,11 @@ export default function AnalysisPanel({
               </h3>
               <div className="bg-surface-secondary rounded-lg p-3">
                 <p className="font-mono text-primary-glow text-lg tracking-wider text-center">
-                  {analysis.digipin}
+                  {analysis.location.digipin}
                 </p>
               </div>
               <p className="text-xs text-slate-500 mt-2 text-center">
                 India Post digital address
-              </p>
-            </div>
-          )}
-          
-          {/* AI Insights placeholder */}
-          {!isLoading && analysis?.insights && (
-            <div className="glass-panel p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
-                <span className="text-lg">🤖</span>
-                AI Insights
-              </h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                {analysis.insights}
               </p>
             </div>
           )}

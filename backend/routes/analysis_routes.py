@@ -4,10 +4,11 @@ Handles location analysis, isochrone, and scoring endpoints.
 """
 
 import re
+import math
 from flask import Blueprint, request, jsonify
 from services.latlong_service import latlong_service
-from services.competitor_service import get_competitors_detailed, get_competitor_count
-from utils.score_calculator import analyze_location
+from services.places_service import fetch_competitors, fetch_landmarks
+from utils.score_calculator import analyze_location, find_recommended_spots
 
 analysis_bp = Blueprint('analysis', __name__)
 
@@ -126,6 +127,8 @@ def analyze():
     default_radius = 2500 if is_major_area else 1000
     radius = data.get('radius', default_radius)
     
+    print(f"🔍 Analysis Request: lat={lat}, lng={lng}, business_type={business_type}, is_major={is_major_area}, radius={radius}m")
+    
     if lat is None or lng is None:
         return jsonify({'error': 'lat and lng are required'}), 400
     
@@ -141,28 +144,58 @@ def analyze():
         business_type
     )
     
-    # Get nearby landmarks with coordinates from Landmarks API
-    nearby_landmarks = latlong_service.get_landmarks(lat, lng)
+    # Get landmarks from multiple sample points to cover the full radius
+    # Sample points: center + 4 cardinal directions + 4 diagonal directions
+    sample_offsets = [
+        (0, 0),  # Center
+        (0.7, 0), (-0.7, 0), (0, 0.7), (0, -0.7),  # Cardinal directions at 70% radius
+        (0.5, 0.5), (-0.5, 0.5), (0.5, -0.5), (-0.5, -0.5),  # Diagonals at 50% radius
+    ]
     
-    # Get competitors from OpenStreetMap via competitor_service
-    # Map business_type to OSM category
-    osm_category_map = {
-        'cafe': 'cafe',
-        'restaurant': 'restaurant',
-        'gym': 'gym',
-        'pharmacy': 'pharmacy',
-        'salon': 'salon',
-        'retail': 'retail',
-        'grocery': 'supermarket',
-    }
-    osm_category = osm_category_map.get(business_type, business_type)
+    # Convert radius to lat/lng offsets
+    lat_offset_per_m = 1 / 111000  # ~1 degree per 111km
+    lng_offset_per_m = 1 / (111000 * math.cos(math.radians(lat)))
     
-    # Fetch competitors from OpenStreetMap
-    osm_competitors = []
-    try:
-        osm_competitors = get_competitors_detailed(lat, lng, radius, osm_category)
-    except Exception as e:
-        print(f"Error fetching OSM competitors: {e}")
+    nearby_landmarks = []
+    landmark_names_seen = set()
+    
+    for lat_mult, lng_mult in sample_offsets:
+        sample_lat = lat + (lat_mult * radius * lat_offset_per_m)
+        sample_lng = lng + (lng_mult * radius * lng_offset_per_m)
+        
+        # Get landmarks at this sample point
+        sample_landmarks = latlong_service.get_landmarks(sample_lat, sample_lng)
+        
+        for lm in sample_landmarks:
+            lm_name = lm.get('name', '').lower()
+            if lm_name and lm_name not in landmark_names_seen:
+                landmark_names_seen.add(lm_name)
+                nearby_landmarks.append(lm)
+    
+    # Fetch competitors using the new places_service (covers entire radius)
+    print(f"🔎 Fetching competitors: category={business_type}, radius={radius}m")
+    osm_competitors = fetch_competitors(lat, lng, radius, business_type)
+    
+    # Fetch landmarks using places_service for better area coverage
+    osm_landmarks = fetch_landmarks(lat, lng, radius)
+    
+    # Also fetch landmarks from LatLong POI API for additional data
+    latlong_poi_categories = ['hospital', 'school', 'hotel', 'bank', 'atm', 'mall', 'restaurant']
+    latlong_pois = []
+    for poi_cat in latlong_poi_categories:
+        try:
+            poi_result = latlong_service.get_poi(lat, lng, poi_cat, radius)
+            for poi in poi_result.get('pois', []):
+                latlong_pois.append({
+                    'name': poi.get('name', ''),
+                    'category': poi_cat,
+                    'lat': poi.get('lat', lat),
+                    'lng': poi.get('lng', lng)
+                })
+        except Exception as e:
+            print(f"⚠️ Error fetching POI {poi_cat}: {e}")
+    
+    print(f"📍 Found {len(latlong_pois)} POIs from LatLong API")
     
     # Combine all landmarks - start with parsed landmarks
     all_landmarks = []
@@ -185,17 +218,38 @@ def analyze():
             all_landmarks.append(lm)
             existing_names.add(lm_name.lower())
     
-    # Format competitors from OSM with distance calculation
+    # Add landmarks from OpenStreetMap (for better area coverage)
+    for lm in osm_landmarks:
+        lm_name = lm.get('name', '')
+        if lm_name.lower() not in existing_names:
+            # Convert places_service format to expected format
+            all_landmarks.append({
+                'name': lm_name,
+                'lat': lm.get('lat'),
+                'lng': lm.get('lng'),
+                'category': lm.get('type', 'landmark')
+            })
+            existing_names.add(lm_name.lower())
+    
+    # Add landmarks from LatLong POI API
+    for poi in latlong_pois:
+        poi_name = poi.get('name', '')
+        if poi_name.lower() not in existing_names:
+            all_landmarks.append(poi)
+            existing_names.add(poi_name.lower())
+    
+    print(f"🏛️ Total landmarks combined: {len(all_landmarks)}")
+    
+    # Format competitors with distance calculation
     all_competitors = []
     for comp in osm_competitors:
         # Calculate approximate distance in meters
-        from math import radians, sin, cos, sqrt, atan2
         R = 6371000  # Earth's radius in meters
-        lat1, lon1 = radians(lat), radians(lng)
-        lat2, lon2 = radians(comp.get('lat', lat)), radians(comp.get('lng', lng))
+        lat1, lon1 = math.radians(lat), math.radians(lng)
+        lat2, lon2 = math.radians(comp.get('lat', lat)), math.radians(comp.get('lng', lng))
         dlat, dlon = lat2 - lat1, lon2 - lon1
-        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-        distance = int(R * 2 * atan2(sqrt(a), sqrt(1-a)))
+        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+        distance = int(R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)))
         
         all_competitors.append({
             'name': comp.get('name', 'Unknown'),
@@ -228,7 +282,19 @@ def analyze():
     # Perform analysis
     analysis_result = analyze_location(landmarks_data, competitors_data, business_type)
     
-    # Compile response
+    # Find recommended spots for business setup
+    print(f"🎯 Finding recommended spots in the area...")
+    recommended_spots = find_recommended_spots(
+        center_lat=lat,
+        center_lng=lng,
+        radius=radius,
+        competitors=all_competitors,
+        landmarks=all_landmarks,
+        max_spots=5
+    )
+    print(f"✅ Found {len(recommended_spots)} recommended spots")
+    
+    # Compile response - return ALL competitors for heatmap accuracy
     response = {
         'location': {
             'lat': lat,
@@ -238,20 +304,17 @@ def analyze():
         },
         'business_type': business_type,
         'filters_applied': filters,
-        'opportunity_score': analysis_result['opportunity_score'],
-        'interpretation': analysis_result['interpretation'],
-        'breakdown': analysis_result['breakdown'],
+        'recommended_spots': recommended_spots,  # NEW: Recommended business locations
         'competitors': {
             'count': len(all_competitors),
-            'nearby': all_competitors[:20]  # Return up to 20 competitors
+            'nearby': all_competitors  # Return ALL competitors for heatmap
         },
         'landmarks': {
             'total': len(all_landmarks),
             'by_category': {'nearby': len(all_landmarks)},
             'list': all_landmarks  # Return all landmarks
         },
-        'footfall_proxy': 'high' if analysis_result['breakdown']['footfall_proxy'] > 60 else 'medium' if analysis_result['breakdown']['footfall_proxy'] > 30 else 'low',
-        'recommendation': analysis_result['interpretation']['recommendation']
+        'footfall_proxy': 'high' if analysis_result['breakdown']['footfall_proxy'] > 60 else 'medium' if analysis_result['breakdown']['footfall_proxy'] > 30 else 'low'
     }
     
     return jsonify(response)

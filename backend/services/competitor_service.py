@@ -9,15 +9,24 @@ from typing import Dict, List, Optional
 
 # Map business categories to OpenStreetMap tags
 CATEGORY_TAG_MAPPING: Dict[str, List[Dict[str, str]]] = {
-    # Food & Beverage
-    'cafe': [{'amenity': 'cafe'}],
+    # Food & Beverage - expanded for better coverage
+    'cafe': [
+        {'amenity': 'cafe'},
+        {'shop': 'coffee'},
+        {'cuisine': 'coffee_shop'},
+        {'amenity': 'fast_food'},  # Many cafes are tagged as fast_food
+    ],
     'coffee': [{'amenity': 'cafe'}, {'shop': 'coffee'}],
-    'restaurant': [{'amenity': 'restaurant'}],
+    'restaurant': [
+        {'amenity': 'restaurant'},
+        {'amenity': 'fast_food'},
+        {'amenity': 'food_court'},
+    ],
     'fast_food': [{'amenity': 'fast_food'}],
-    'bar': [{'amenity': 'bar'}],
-    'pub': [{'amenity': 'pub'}],
-    'bakery': [{'shop': 'bakery'}],
-    'ice_cream': [{'amenity': 'ice_cream'}, {'shop': 'ice_cream'}],
+    'bar': [{'amenity': 'bar'}, {'amenity': 'pub'}],
+    'pub': [{'amenity': 'pub'}, {'amenity': 'bar'}],
+    'bakery': [{'shop': 'bakery'}, {'shop': 'pastry'}],
+    'ice_cream': [{'amenity': 'ice_cream'}, {'shop': 'ice_cream'}, {'shop': 'frozen_yogurt'}],
     
     # Health & Fitness
     'gym': [{'leisure': 'fitness_centre'}, {'amenity': 'gym'}],
@@ -88,7 +97,7 @@ def _build_overpass_query(lat: float, lng: float, radius: int, tags: List[Dict[s
     
     # Combine all queries with union
     query = f"""
-    [out:json][timeout:5];
+    [out:json][timeout:25];
     (
         {chr(10).join(query_parts)}
     );
@@ -124,7 +133,7 @@ def _build_detailed_query(lat: float, lng: float, radius: int, tags: List[Dict[s
             query_parts.append(f'relation{tag_filter}{around_filter};')
     
     query = f"""
-    [out:json][timeout:5];
+    [out:json][timeout:25];
     (
         {chr(10).join(query_parts)}
     );
@@ -268,6 +277,73 @@ def get_competitors_detailed(lat: float, lng: float, radius: int, category: str)
     except Exception as e:
         print(f"Overpass API error getting detailed competitors: {e}")
         return []
+
+
+# Landmark categories for OSM query
+LANDMARK_TAG_MAPPING: Dict[str, List[Dict[str, str]]] = {
+    'metro': [{'railway': 'station'}, {'station': 'subway'}],
+    'bus_stop': [{'highway': 'bus_stop'}, {'amenity': 'bus_station'}],
+    'school': [{'amenity': 'school'}],
+    'college': [{'amenity': 'college'}, {'amenity': 'university'}],
+    'hospital': [{'amenity': 'hospital'}],
+    'mall': [{'shop': 'mall'}],
+    'park': [{'leisure': 'park'}],
+    'bank': [{'amenity': 'bank'}],
+    'atm': [{'amenity': 'atm'}],
+    'temple': [{'amenity': 'place_of_worship'}],
+}
+
+
+def get_landmarks_from_osm(lat: float, lng: float, radius: int) -> List[Dict]:
+    """
+    Get landmarks from OpenStreetMap within a radius.
+    Fetches multiple landmark types for better area coverage.
+    
+    Args:
+        lat: Latitude of center
+        lng: Longitude of center
+        radius: Search radius in meters
+        
+    Returns:
+        List of landmarks with name, lat, lng, category
+    """
+    landmarks = []
+    
+    # Fetch each landmark type
+    for category, tags in LANDMARK_TAG_MAPPING.items():
+        query = _build_detailed_query(lat, lng, radius, tags)
+        
+        try:
+            api = overpy.Overpass()
+            result = api.query(query)
+            
+            # Process nodes
+            for node in result.nodes:
+                name = node.tags.get('name', '')
+                if name:
+                    landmarks.append({
+                        'name': name,
+                        'lat': float(node.lat),
+                        'lng': float(node.lon),
+                        'category': category
+                    })
+            
+            # Process ways with centers
+            for way in result.ways:
+                name = way.tags.get('name', '')
+                if name and way.center_lat:
+                    landmarks.append({
+                        'name': name,
+                        'lat': float(way.center_lat),
+                        'lng': float(way.center_lon),
+                        'category': category
+                    })
+                    
+        except Exception as e:
+            print(f"Error fetching {category} landmarks: {e}")
+            continue
+    
+    return landmarks
 
 
 def get_available_categories() -> List[str]:
