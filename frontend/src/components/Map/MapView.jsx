@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import HeatmapOverlay from './HeatmapOverlay';
+import AnalyticsPanel from './AnalyticsPanel';
 
 // Fix for default marker icons in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -655,161 +656,30 @@ export default function MapView({
           })}
       </MapContainer>
 
-      {/* Unified Bottom-Right Controls - Single Column Stack */}
+      {/* Unified Analytics Panel */}
       {selectedLocation && !isLoading && (
-        <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2 max-w-[220px]">
-          {/* Row 1: Quick Stats Panel */}
-          {analysis && onOpenPanel && (
-            <button
-              onClick={onOpenPanel}
-              className="w-full backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-4 hover:bg-slate-800/90 transition-all cursor-pointer group shadow-xl"
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-emerald-400">
-                    {analysis.recommended_spots?.length || 0}
-                  </p>
-                  <p className="text-xs text-slate-500">Spots</p>
-                </div>
-                <div className="w-px h-10 bg-white/10" />
-                <div className="text-left text-sm">
-                  <p className="text-slate-300">
-                    <span className="text-rose-400 font-semibold">{analysis.competitors?.count || 0}</span> competitors
-                  </p>
-                  <p className="text-slate-300">
-                    <span className="text-cyan-400 font-semibold">{analysis.landmarks?.total || 0}</span> landmarks
-                  </p>
-                </div>
-                <div className="text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all ml-auto">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </button>
-          )}
-
-          {/* Row 2: Landmarks & Competitors Toggle */}
-          {setShowLandmarks && setShowCompetitors && (
-            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-2 flex gap-2 shadow-xl">
-              <button
-                onClick={() => setShowLandmarks(!showLandmarks)}
-                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${showLandmarks
-                  ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/25'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
-                  }`}
-              >
-                <img src="/icons/building.svg" alt="" className="w-4 h-4"
-                  style={{ filter: showLandmarks ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
-                />
-                <span>Landmarks</span>
-              </button>
-              <button
-                onClick={() => setShowCompetitors(!showCompetitors)}
-                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${showCompetitors
-                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
-                  }`}
-              >
-                <img src="/icons/store.svg" alt="" className="w-4 h-4"
-                  style={{ filter: showCompetitors ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }}
-                />
-                <span>Competitors</span>
-              </button>
-            </div>
-          )}
-
-          {/* Row 3: Heatmap, Spots, Smart View Toggle */}
-          {competitorList.length > 0 && (
-            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-2 flex flex-wrap gap-2 shadow-xl">
-              <button
-                onClick={() => setHeatmapEnabled(!heatmapEnabled)}
-                className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${heatmapEnabled
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
-                  }`}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <span>Heatmap</span>
-              </button>
-              {spotList.length > 0 && (
-                <button
-                  onClick={() => setShowSpots(!showSpots)}
-                  className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${showSpots
-                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
-                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
-                    }`}
-                >
-                  <img src="/icons/star.svg" alt="" className="w-4 h-4" style={{ filter: showSpots ? 'brightness(0) invert(1)' : 'invert(70%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%) contrast(85%)' }} />
-                  <span>{spotList.length} Spots</span>
-                </button>
-              )}
-              {businessType && landmarkList.length > 0 && (
-                <button
-                  onClick={() => setContextualVisibility(!contextualVisibility)}
-                  className={`flex-1 min-w-[60px] px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all flex items-center justify-center gap-1 ${contextualVisibility
-                    ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25'
-                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
-                    }`}
-                  title="Adjusts landmark visibility based on relevance to your business type"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  <span>Smart</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Row 4: Heatmap Legend */}
-          {heatmapEnabled && competitorList.length > 0 && (
-            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-4 shadow-xl">
-              <p className="text-sm font-medium text-slate-300 mb-2">Competition Density</p>
-              <div className="flex items-center gap-1">
-                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(34, 197, 94)' }} />
-                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(134, 197, 94)' }} />
-                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(255, 200, 0)' }} />
-                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(255, 150, 0)' }} />
-                <div className="w-5 h-5 rounded-md" style={{ background: 'rgb(255, 80, 50)' }} />
-              </div>
-              <div className="flex justify-between text-xs text-slate-500 mt-2">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Low</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500"></span>High</span>
-              </div>
-            </div>
-          )}
-
-          {/* Row 5: Smart View Legend */}
-          {contextualVisibility && businessType && landmarkList.length > 0 && (
-            <div className="backdrop-blur-xl bg-slate-900/90 border border-white/10 rounded-2xl p-4 shadow-xl">
-              <p className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
-                <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                Smart: {businessType}
-              </p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-5 h-5 rounded-full bg-cyan-500 opacity-100 flex items-center justify-center">
-                    <span className="text-white text-xs">★</span>
-                  </div>
-                  <span className="text-slate-400">High relevance</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-4 h-4 rounded-full bg-cyan-500 opacity-50 flex items-center justify-center">
-                    <span className="text-white text-[8px]">•</span>
-                  </div>
-                  <span className="text-slate-400">Low relevance</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <AnalyticsPanel
+          stats={{
+            spots: analysis?.recommended_spots?.length || 0,
+            competitors: analysis?.competitors?.count || 0,
+            landmarks: analysis?.landmarks?.total || 0
+          }}
+          toggles={{
+            showLandmarks,
+            setShowLandmarks,
+            showCompetitors,
+            setShowCompetitors,
+            heatmapEnabled,
+            setHeatmapEnabled,
+            contextualVisibility,
+            setContextualVisibility,
+            showSpots,
+            setShowSpots
+          }}
+          businessType={businessType}
+          onOpenPanel={onOpenPanel}
+          isDarkMode={isDarkMode}
+        />
       )}
     </div>
   );
