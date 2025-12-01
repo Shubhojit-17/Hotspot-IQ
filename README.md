@@ -62,6 +62,7 @@ Hotspot IQ is an **AI-powered location intelligence platform** that helps entrep
 ### Phase 3: Future Radar & Operations
 - **Growth Radar** — AI scans news for "New metro station in Whitefield" type developments
 - **Supply Chain Validator** — Enter warehouse location, get logistics feasibility score
+- **Location Identifier** - Identify Legally Restricted areas for businesses and areas where there are Prohibited Business Activities/Types
 
 ---
 
@@ -503,10 +504,9 @@ Built with ❤️ for [Hackathon Name] 2025
 
 | Role | Name |
 |------|------|
-| **Product & Architecture** | [Your Name] |
-| **Frontend** | [Team Member] |
-| **Backend** | [Team Member] |
-| **AI/ML** | [Team Member] |
+| **Product & Architecture** **Backend** | Shubhajit Sarkar |
+| **Frontend** | Shivam Atulya, Shreeya Nagaraj |
+| **AI/ML** | Tanmay Patil |
 
 ---
 
